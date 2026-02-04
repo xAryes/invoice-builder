@@ -110,7 +110,7 @@ export const OnboardingChecklist = ({ invoices = [], clients = [], profile }) =>
                     </span>
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Complete these steps to get the most out of Billflow
+                    Complete these steps to get the most out of Invoice Builder
                   </p>
                 </div>
               </div>

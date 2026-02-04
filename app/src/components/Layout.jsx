@@ -441,7 +441,9 @@ export const Layout = ({ children }) => {
               </svg>
             </div>
             {!sidebarCollapsed && (
-              <span className="font-bold text-gray-900 dark:text-white">Invoice Builder</span>
+              <span className="font-bold text-gray-900 dark:text-white">
+                Invoice <span className="text-emerald-500">Builder</span>
+              </span>
             )}
           </div>
         </div>

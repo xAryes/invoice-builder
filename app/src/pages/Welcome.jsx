@@ -42,12 +42,12 @@ const GoogleIcon = ({ className = "w-5 h-5" }) => (
 
 // Brand Colors - Emerald/Teal theme (softer than blue)
 const BRAND = {
-  name: 'Billflow',
+  name: 'Invoice Builder',
   primary: 'emerald',
   accent: 'teal',
 }
 
-// Logo component - New Billflow branding
+// Logo component - Invoice Builder branding
 const Logo = ({ dark = false, size = 'default' }) => {
   const sizes = {
     small: { icon: 'w-7 h-7', text: 'text-base', iconSize: 'w-3.5 h-3.5' },
@@ -67,7 +67,7 @@ const Logo = ({ dark = false, size = 'default' }) => {
         </svg>
       </div>
       <span className={`font-bold ${s.text} ${dark ? 'text-white' : 'text-gray-900'}`}>
-        Bill<span className="text-emerald-500">flow</span>
+        Invoice <span className="text-emerald-500">Builder</span>
       </span>
     </div>
   )
@@ -96,7 +96,7 @@ const DashboardPreview = () => (
         <div className="flex-1 mx-4">
           <div className="h-6 bg-white/5 rounded-lg max-w-xs mx-auto flex items-center justify-center gap-2">
             <Shield className="w-3 h-3 text-emerald-400" />
-            <span className="text-[10px] text-white/40">app.billflow.co/dashboard</span>
+            <span className="text-[10px] text-white/40">invoicebuilder.app/dashboard</span>
           </div>
         </div>
       </div>
@@ -885,7 +885,7 @@ const HowItWorksSection = () => {
           <div className="text-xs text-gray-500 mb-2">Payment link</div>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-white rounded-lg px-3 py-2 text-xs text-gray-600 border truncate">
-              pay.billflow.co/inv-2026-042
+              pay.invoicebuilder.app/inv-2026-042
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -1415,7 +1415,7 @@ const FeatureShowcaseSection = () => (
 const TestimonialsSection = () => {
   const testimonials = [
     {
-      quote: "Billflow has completely transformed how I manage my freelance business. Creating and sending invoices used to take hours, now it takes minutes.",
+      quote: "Invoice Builder has completely transformed how I manage my freelance business. Creating and sending invoices used to take hours, now it takes minutes.",
       author: "Sarah Chen",
       role: "Freelance Designer",
       avatar: "SC",
@@ -1435,7 +1435,7 @@ const TestimonialsSection = () => {
       metricLabel: "Cash flow visibility"
     },
     {
-      quote: "My clients love the online payment option. Since switching to Billflow, my average payment time has dropped from 30 days to just 5.",
+      quote: "My clients love the professional invoices. Since switching to Invoice Builder, my average payment time has dropped from 30 days to just 5.",
       author: "Emily Rodriguez",
       role: "Consultant",
       avatar: "ER",
@@ -1481,7 +1481,7 @@ const TestimonialsSection = () => {
             <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">worldwide</span>
           </h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            See what our customers have to say about their experience with Billflow.
+            See what our users have to say about their experience with Invoice Builder.
           </p>
         </motion.div>
 
