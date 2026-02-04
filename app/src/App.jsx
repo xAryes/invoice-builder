@@ -9,11 +9,6 @@ import { ToastProvider } from './components/ui'
 import { Login, Signup, ForgotPassword, Dashboard, InvoiceEditor, GuidedInvoiceEditor, Settings, Clients, RecurringInvoices, Welcome } from './pages'
 import { isSupabaseConfigured } from './lib/supabase'
 
-// Check if user needs onboarding
-const needsOnboarding = () => {
-  const completed = localStorage.getItem('onboarding_completed')
-  return !completed
-}
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -62,24 +57,14 @@ const PublicRoute = ({ children }) => {
 function AppRoutes() {
   const { user } = useAuth()
 
-  // Check if user has completed onboarding
-  const hasCompletedOnboarding = () => {
-    const status = localStorage.getItem('onboarding_completed')
-    return !!status
-  }
-
   return (
     <Routes>
-      {/* Welcome page - FIRST thing users see (Google Auth) */}
+      {/* Welcome page - FIRST thing users see */}
       <Route
         path="/"
         element={
-          user ? (
-            hasCompletedOnboarding() ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/onboarding" replace />
-            )
+          user || !isSupabaseConfigured() ? (
+            <Navigate to="/dashboard" replace />
           ) : (
             <Welcome />
           )

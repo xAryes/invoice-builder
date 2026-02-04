@@ -26,7 +26,6 @@ import {
   X,
   ChevronDown,
   User,
-  CreditCard,
   HelpCircle,
   Zap,
   Copy,
@@ -237,7 +236,6 @@ const ProfileDropdown = ({ user, onSignOut, theme, toggleTheme }) => {
           <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">
             {userName}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 leading-tight">Pro Plan</p>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -273,14 +271,6 @@ const ProfileDropdown = ({ user, onSignOut, theme, toggleTheme }) => {
               >
                 <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">Profile Settings</span>
-              </Link>
-              <Link
-                to="/pricing"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition"
-              >
-                <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Billing & Plans</span>
               </Link>
               <button
                 onClick={toggleTheme}
@@ -451,10 +441,7 @@ export const Layout = ({ children }) => {
               </svg>
             </div>
             {!sidebarCollapsed && (
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-gray-900 dark:text-white">Bill<span className="text-emerald-500">flow</span></span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-100 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full">PRO</span>
-              </div>
+              <span className="font-bold text-gray-900 dark:text-white">Invoice Builder</span>
             )}
           </div>
         </div>
