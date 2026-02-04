@@ -30,11 +30,12 @@ export const exportToPDF = async (element, filename = 'invoice.pdf') => {
   const imgData = canvas.toDataURL('image/png')
   pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
 
-  // If content exceeds one page, add more pages
+  // If content exceeds one page by more than 5mm, add more pages
+  // This threshold prevents blank pages from small pixel overflow
   let heightLeft = imgHeight - pageHeight
   let position = -pageHeight
 
-  while (heightLeft > 0) {
+  while (heightLeft > 5) {
     pdf.addPage()
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
     heightLeft -= pageHeight

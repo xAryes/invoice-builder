@@ -6,7 +6,7 @@ import { ThemeProvider } from './hooks/useTheme'
 import { RecurringInvoicesProvider } from './hooks/useRecurringInvoices'
 import { InvoiceHistoryProvider } from './hooks/useInvoiceHistory'
 import { ToastProvider } from './components/ui'
-import { Login, Signup, ForgotPassword, Dashboard, InvoiceEditor, GuidedInvoiceEditor, Settings, Clients, RecurringInvoices, Welcome } from './pages'
+import { Login, Signup, ForgotPassword, Dashboard, InvoiceEditor, GuidedInvoiceEditor, SteppedInvoiceEditor, Settings, Clients, RecurringInvoices, Welcome } from './pages'
 import { isSupabaseConfigured } from './lib/supabase'
 
 
@@ -109,6 +109,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice/new"
+        element={
+          <ProtectedRoute>
+            <SteppedInvoiceEditor />
           </ProtectedRoute>
         }
       />

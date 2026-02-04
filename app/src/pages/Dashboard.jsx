@@ -1,36 +1,19 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInvoices } from '../hooks/useInvoices'
 import { useAuth } from '../hooks/useAuth'
-import { Button, StatusBadge, getInvoiceStatus, STATUS_OPTIONS, useToast } from '../components/ui'
+import { StatusBadge, getInvoiceStatus, STATUS_OPTIONS, useToast } from '../components/ui'
 import { Layout } from '../components/Layout'
-import { RevenueChart } from '../components/RevenueChart'
-import { ClientBreakdown } from '../components/ClientBreakdown'
-import { InvoiceAgingReport } from '../components/InvoiceAgingReport'
-import { RecentActivityWidget } from '../components/InvoiceHistory'
-import { OnboardingChecklist } from '../components/OnboardingChecklist'
-import { useProfiles } from '../hooks/useProfiles'
 import {
   Plus,
   FileText,
   Trash2,
   Edit2,
   Search,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Receipt,
   Copy,
-  DollarSign,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  Download,
-  Sparkles,
   ArrowUpRight,
 } from 'lucide-react'
 
@@ -66,268 +49,31 @@ const calculateInvoiceTotal = (invoice) => {
   }, 0)
 }
 
-// Animated counter hook
-const useAnimatedCounter = (end, duration = 1500, startDelay = 0) => {
-  const [count, setCount] = useState(0)
-  const countRef = useRef(0)
-  const startTimeRef = useRef(null)
-  const rafRef = useRef(null)
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const animate = (timestamp) => {
-        if (!startTimeRef.current) startTimeRef.current = timestamp
-        const progress = Math.min((timestamp - startTimeRef.current) / duration, 1)
-
-        // Easing function for smooth animation
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4)
-        countRef.current = easeOutQuart * end
-        setCount(countRef.current)
-
-        if (progress < 1) {
-          rafRef.current = requestAnimationFrame(animate)
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(animate)
-    }, startDelay)
-
-    return () => {
-      clearTimeout(timeout)
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
-  }, [end, duration, startDelay])
-
-  return count
-}
-
-// Animated number display component
-const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0, delay = 0 }) => {
-  const numericValue = typeof value === 'string'
-    ? parseFloat(value.replace(/[^0-9.-]/g, '')) || 0
-    : value || 0
-
-  const animatedValue = useAnimatedCounter(numericValue, 1500, delay)
-
-  const formattedValue = animatedValue.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })
-
-  return <>{prefix}{formattedValue}{suffix}</>
-}
-
-const StatCard = ({ title, value, icon: Icon, trend, trendUp, subtitle, gradient, iconGradient, delay = 0, isCurrency = false, currencySymbol = '€' }) => {
-  // Parse numeric value for animation
-  const numericValue = typeof value === 'string'
-    ? parseFloat(value.replace(/[^0-9.-]/g, '')) || 0
-    : value || 0
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className="relative overflow-hidden bg-white dark:bg-gray-900/50 rounded-2xl p-6 border border-gray-100 dark:border-white/5 group hover:shadow-xl hover:shadow-gray-100/50 dark:hover:shadow-none transition-all duration-300"
-    >
-      {/* Subtle gradient background */}
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient || 'bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-500/5 dark:to-transparent'}`} />
-
-      <div className="relative">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
-            iconGradient || 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/25'
-          }`}>
-            <Icon className="w-6 h-6 text-white" />
-          </div>
-          {trend !== undefined && (
-            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold ${
-              trendUp
-                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
-            }`}>
-              {trendUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-              {Math.abs(trend)}%
-            </div>
-          )}
-        </div>
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-          {isCurrency ? (
-            <AnimatedNumber
-              value={numericValue}
-              prefix={currencySymbol}
-              decimals={2}
-              delay={delay * 1000}
-            />
-          ) : (
-            <AnimatedNumber
-              value={numericValue}
-              decimals={0}
-              delay={delay * 1000}
-            />
-          )}
-        </p>
-        {subtitle && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {subtitle}
-          </p>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50]
-
-const DATE_RANGE_OPTIONS = [
-  { value: 'all', label: 'All Time' },
-  { value: 'this_month', label: 'This Month' },
-  { value: 'last_month', label: 'Last Month' },
-  { value: 'this_quarter', label: 'This Quarter' },
-  { value: 'this_year', label: 'This Year' },
-  { value: 'last_year', label: 'Last Year' },
-]
-
-const getDateRange = (range) => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-
-  switch (range) {
-    case 'this_month':
-      return {
-        start: new Date(year, month, 1),
-        end: new Date(year, month + 1, 0, 23, 59, 59)
-      }
-    case 'last_month':
-      return {
-        start: new Date(year, month - 1, 1),
-        end: new Date(year, month, 0, 23, 59, 59)
-      }
-    case 'this_quarter': {
-      const quarterStart = Math.floor(month / 3) * 3
-      return {
-        start: new Date(year, quarterStart, 1),
-        end: new Date(year, quarterStart + 3, 0, 23, 59, 59)
-      }
-    }
-    case 'this_year':
-      return {
-        start: new Date(year, 0, 1),
-        end: new Date(year, 11, 31, 23, 59, 59)
-      }
-    case 'last_year':
-      return {
-        start: new Date(year - 1, 0, 1),
-        end: new Date(year - 1, 11, 31, 23, 59, 59)
-      }
-    default:
-      return null
-  }
-}
-
-const exportToCSV = (invoices, calculateTotal, generateId) => {
-  const headers = ['Invoice #', 'Client', 'Email', 'Issue Date', 'Due Date', 'Amount', 'Currency', 'Status']
-  const rows = invoices.map(inv => [
-    generateId(inv),
-    inv.client_name || inv.clientName || '',
-    inv.client_email || inv.clientEmail || '',
-    inv.issue_date || inv.issueDate || '',
-    inv.due_date || inv.dueDate || '',
-    calculateTotal(inv).toFixed(2),
-    inv.currency || 'EUR',
-    inv.status || 'draft'
-  ])
-
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-  ].join('\n')
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `invoices-${new Date().toISOString().split('T')[0]}.csv`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-const SortHeader = ({ label, sortKey, sortConfig, onSort }) => {
-  const isActive = sortConfig.key === sortKey
-  return (
-    <button
-      onClick={() => onSort(sortKey)}
-      className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-    >
-      {label}
-      <span className="text-gray-400 dark:text-gray-600">
-        {isActive ? (
-          sortConfig.direction === 'asc' ? (
-            <ChevronUp className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5" />
-          )
-        ) : (
-          <ChevronsUpDown className="w-3.5 h-3.5" />
-        )}
-      </span>
-    </button>
-  )
-}
-
-// Get greeting based on time of day
-const getGreeting = () => {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
-// Get first name from full name or email
-const getFirstName = (user) => {
-  if (!user) return null
-  // Check user metadata for name (from OAuth providers like Google)
-  if (user.user_metadata?.full_name) {
-    return user.user_metadata.full_name.split(' ')[0]
-  }
-  if (user.user_metadata?.name) {
-    return user.user_metadata.name.split(' ')[0]
-  }
-  // Fall back to email username
-  if (user.email) {
-    return user.email.split('@')[0]
-  }
-  return null
-}
+// Minimal stat display
+const StatItem = ({ label, value, prefix = '' }) => (
+  <div>
+    <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{prefix}{value}</p>
+  </div>
+)
 
 export const Dashboard = () => {
   const { invoices, loading, deleteInvoice, updateInvoice, createInvoice } = useInvoices()
   const { user } = useAuth()
-  const { profiles, clients } = useProfiles()
   const navigate = useNavigate()
   const toast = useToast()
   const [deletingId, setDeletingId] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortConfig, setSortConfig] = useState({ key: 'issue_date', direction: 'desc' })
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
-  const [dateRange, setDateRange] = useState('all')
-  const [selectedIds, setSelectedIds] = useState(new Set())
-  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const itemsPerPage = 10
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this invoice?')) return
     setDeletingId(id)
     try {
       await deleteInvoice(id)
-      toast.success('Invoice deleted successfully')
+      toast.success('Invoice deleted')
     } catch (error) {
       toast.error('Failed to delete invoice')
     } finally {
@@ -340,54 +86,7 @@ export const Dashboard = () => {
       await updateInvoice(invoice.id, { ...invoice, status: newStatus })
       toast.success(`Status updated to ${newStatus}`)
     } catch (error) {
-      console.error('Error updating status:', error)
       toast.error('Failed to update status')
-    }
-  }
-
-  const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedIds(new Set(paginatedInvoices.map(inv => inv.id)))
-    } else {
-      setSelectedIds(new Set())
-    }
-  }
-
-  const handleSelectOne = (id, checked) => {
-    const newSelected = new Set(selectedIds)
-    if (checked) {
-      newSelected.add(id)
-    } else {
-      newSelected.delete(id)
-    }
-    setSelectedIds(newSelected)
-  }
-
-  const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} invoice(s)?`)) return
-    setBulkActionLoading(true)
-    try {
-      await Promise.all([...selectedIds].map(id => deleteInvoice(id)))
-      toast.success(`${selectedIds.size} invoice(s) deleted`)
-      setSelectedIds(new Set())
-    } catch (error) {
-      toast.error('Failed to delete some invoices')
-    } finally {
-      setBulkActionLoading(false)
-    }
-  }
-
-  const handleBulkStatusChange = async (newStatus) => {
-    setBulkActionLoading(true)
-    try {
-      const selectedInvoices = invoices.filter(inv => selectedIds.has(inv.id))
-      await Promise.all(selectedInvoices.map(inv => updateInvoice(inv.id, { ...inv, status: newStatus })))
-      toast.success(`${selectedIds.size} invoice(s) updated to ${newStatus}`)
-      setSelectedIds(new Set())
-    } catch (error) {
-      toast.error('Failed to update some invoices')
-    } finally {
-      setBulkActionLoading(false)
     }
   }
 
@@ -419,80 +118,42 @@ export const Dashboard = () => {
       toast.success('Invoice duplicated')
       navigate(`/invoice/${created.id}`)
     } catch (error) {
-      console.error('Error duplicating invoice:', error)
       toast.error('Failed to duplicate invoice')
     }
   }
 
-  // Calculate stats
+  // Calculate simple stats
   const stats = useMemo(() => {
-    const now = new Date()
-    const thisMonth = now.getMonth()
-    const thisYear = now.getFullYear()
-    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1
-    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear
-
     let totalRevenue = 0
-    let thisMonthRevenue = 0
-    let lastMonthRevenue = 0
+    let pendingAmount = 0
     const uniqueClients = new Set()
 
     invoices.forEach(inv => {
       const total = calculateInvoiceTotal(inv)
-      const date = new Date(inv.created_at)
+      const status = getInvoiceStatus(inv)
 
-      totalRevenue += total
-
-      if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
-        thisMonthRevenue += total
+      if (status === 'paid') {
+        totalRevenue += total
       }
-      if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
-        lastMonthRevenue += total
+      if (status === 'pending' || status === 'overdue') {
+        pendingAmount += total
       }
-
       if (inv.client_name || inv.clientName) {
         uniqueClients.add(inv.client_name || inv.clientName)
       }
     })
 
-    const revenueTrend = lastMonthRevenue > 0
-      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
-      : thisMonthRevenue > 0 ? 100 : 0
-
     return {
       totalRevenue,
+      pendingAmount,
       totalInvoices: invoices.length,
       totalClients: uniqueClients.size,
-      revenueTrend,
-      thisMonthCount: invoices.filter(inv => {
-        const date = new Date(inv.created_at)
-        return date.getMonth() === thisMonth && date.getFullYear() === thisYear
-      }).length,
     }
   }, [invoices])
 
-  // Handle sort
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }))
-    setCurrentPage(1)
-  }
-
-  // Filter and sort invoices
+  // Filter invoices
   const filteredInvoices = useMemo(() => {
-    const range = getDateRange(dateRange)
-
-    let result = invoices.filter(invoice => {
-      // Date range filter
-      if (range) {
-        const invoiceDate = new Date(invoice.issue_date || invoice.issueDate || invoice.created_at)
-        if (invoiceDate < range.start || invoiceDate > range.end) {
-          return false
-        }
-      }
-
+    return invoices.filter(invoice => {
       if (statusFilter !== 'all') {
         const status = getInvoiceStatus(invoice)
         if (status !== statusFilter) return false
@@ -501,51 +162,19 @@ export const Dashboard = () => {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase()
         const clientName = (invoice.client_name || invoice.clientName || '').toLowerCase()
-        const clientEmail = (invoice.client_email || invoice.clientEmail || '').toLowerCase()
         const invoiceNum = (invoice.invoice_number || invoice.invoiceNumber || '').toLowerCase()
-        if (!clientName.includes(query) && !clientEmail.includes(query) && !invoiceNum.includes(query)) {
+        if (!clientName.includes(query) && !invoiceNum.includes(query)) {
           return false
         }
       }
 
       return true
+    }).sort((a, b) => {
+      const aDate = new Date(a.issue_date || a.issueDate || a.created_at || 0).getTime()
+      const bDate = new Date(b.issue_date || b.issueDate || b.created_at || 0).getTime()
+      return bDate - aDate
     })
-
-    // Sort
-    result.sort((a, b) => {
-      let aVal, bVal
-      switch (sortConfig.key) {
-        case 'client':
-          aVal = (a.client_name || a.clientName || '').toLowerCase()
-          bVal = (b.client_name || b.clientName || '').toLowerCase()
-          break
-        case 'issue_date':
-          aVal = new Date(a.issue_date || a.issueDate || 0).getTime()
-          bVal = new Date(b.issue_date || b.issueDate || 0).getTime()
-          break
-        case 'due_date':
-          aVal = new Date(a.due_date || a.dueDate || 0).getTime()
-          bVal = new Date(b.due_date || b.dueDate || 0).getTime()
-          break
-        case 'amount':
-          aVal = calculateInvoiceTotal(a)
-          bVal = calculateInvoiceTotal(b)
-          break
-        case 'status':
-          aVal = getInvoiceStatus(a)
-          bVal = getInvoiceStatus(b)
-          break
-        default:
-          aVal = a[sortConfig.key] || ''
-          bVal = b[sortConfig.key] || ''
-      }
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
-      return 0
-    })
-
-    return result
-  }, [invoices, statusFilter, searchQuery, sortConfig, dateRange])
+  }, [invoices, statusFilter, searchQuery])
 
   // Pagination
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage)
@@ -554,23 +183,7 @@ export const Dashboard = () => {
     return filteredInvoices.slice(start, start + itemsPerPage)
   }, [filteredInvoices, currentPage, itemsPerPage])
 
-  // Reset page when filters change
-  const handleFilterChange = (filter) => {
-    setStatusFilter(filter)
-    setCurrentPage(1)
-  }
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value)
-    setCurrentPage(1)
-  }
-
-  const handleDateRangeChange = (range) => {
-    setDateRange(range)
-    setCurrentPage(1)
-  }
-
-  // Status counts for tabs
+  // Status counts
   const statusCounts = useMemo(() => {
     const counts = { all: invoices.length, draft: 0, pending: 0, paid: 0, overdue: 0 }
     invoices.forEach(inv => {
@@ -582,342 +195,159 @@ export const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="p-6 lg:p-8">
-        {/* Welcome Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {getGreeting()}{getFirstName(user) ? `, ${getFirstName(user)}` : ''}! 👋
-              </h1>
-              <p className="text-gray-500 dark:text-gray-500">
-                Here's what's happening with your invoices today.
-              </p>
-            </div>
-            <Link to="/invoice/new">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                New Invoice
-              </motion.button>
-            </Link>
+      <div className="p-6 lg:p-10 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-10">
+          <div>
+            <h1 className="text-3xl font-light text-gray-900 dark:text-white mb-1">
+              Invoices
+            </h1>
+            <p className="text-gray-400 dark:text-gray-500">
+              Manage your invoices
+            </p>
           </div>
-        </motion.div>
+          <Link to="/invoice/new">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+            >
+              <Plus className="w-4 h-4" />
+              New Invoice
+            </motion.button>
+          </Link>
+        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <StatCard
-            title="Total Revenue"
-            value={stats.totalRevenue}
-            icon={DollarSign}
-            iconGradient="bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30"
-            gradient="bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-500/5 dark:to-transparent"
-            trend={stats.revenueTrend}
-            trendUp={stats.revenueTrend >= 0}
-            delay={0}
-            isCurrency
-            currencySymbol="€"
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 pb-10 border-b border-gray-100 dark:border-white/5">
+          <StatItem
+            label="Paid"
+            value={formatCurrency(stats.totalRevenue, 'EUR')}
           />
-          <StatCard
-            title="Total Invoices"
+          <StatItem
+            label="Pending"
+            value={formatCurrency(stats.pendingAmount, 'EUR')}
+          />
+          <StatItem
+            label="Invoices"
             value={stats.totalInvoices}
-            icon={FileText}
-            iconGradient="bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/30"
-            gradient="bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-500/5 dark:to-transparent"
-            subtitle="All time"
-            delay={0.1}
           />
-          <StatCard
-            title="Active Clients"
+          <StatItem
+            label="Clients"
             value={stats.totalClients}
-            icon={Users}
-            iconGradient="bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-cyan-500/30"
-            gradient="bg-gradient-to-br from-cyan-50 to-transparent dark:from-cyan-500/5 dark:to-transparent"
-            subtitle="Unique clients"
-            delay={0.2}
-          />
-          <StatCard
-            title="This Month"
-            value={stats.thisMonthCount}
-            icon={Receipt}
-            iconGradient="bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30"
-            gradient="bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-500/5 dark:to-transparent"
-            subtitle="New invoices"
-            delay={0.3}
           />
         </div>
 
-        {/* Onboarding Checklist + Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-2 space-y-4">
-            <OnboardingChecklist
-              invoices={invoices}
-              clients={clients}
-              profile={profiles?.[0]}
-            />
-            <RevenueChart invoices={invoices} />
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          {/* Status Tabs */}
+          <div className="flex gap-1">
+            {STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setStatusFilter(opt.value)
+                  setCurrentPage(1)
+                }}
+                className={`px-3 py-1.5 text-sm rounded-md transition ${
+                  statusFilter === opt.value
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {opt.label}
+                <span className={`ml-1.5 ${statusFilter === opt.value ? 'text-gray-300 dark:text-gray-600' : 'text-gray-300 dark:text-gray-600'}`}>
+                  {statusCounts[opt.value]}
+                </span>
+              </button>
+            ))}
           </div>
-          <ClientBreakdown invoices={invoices} />
-        </div>
 
-        {/* Aging Report and Activity Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <InvoiceAgingReport invoices={invoices} className="lg:col-span-2" />
-          <RecentActivityWidget limit={8} />
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search invoices..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/20 w-64 placeholder:text-gray-400"
+            />
+          </div>
         </div>
 
         {/* Invoice List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-[#111113] rounded-2xl border border-gray-200/60 dark:border-white/5"
-        >
-          {/* Header */}
-          <div className="p-5 border-b border-gray-100 dark:border-white/5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  Invoices
-                  <span className="text-xs text-gray-400 dark:text-gray-600 font-normal">
-                    {filteredInvoices.length} total
-                  </span>
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Manage and track your invoices</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {/* Date Range Filter */}
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-600" />
-                  <select
-                    value={dateRange}
-                    onChange={(e) => handleDateRangeChange(e.target.value)}
-                    className="pl-9 pr-8 py-2.5 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition appearance-none cursor-pointer"
-                  >
-                    {DATE_RANGE_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-600" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    className="pl-9 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition w-48 placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                  />
-                </div>
-                <button
-                  onClick={() => exportToCSV(filteredInvoices, calculateInvoiceTotal, generateInvoiceId)}
-                  disabled={filteredInvoices.length === 0}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition disabled:opacity-50"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
-              </div>
-            </div>
-
-            {/* Bulk Actions Bar */}
-            {selectedIds.size > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 mt-5 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl"
-              >
-                <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">
-                  {selectedIds.size} selected
-                </span>
-                <div className="h-4 w-px bg-emerald-300 dark:bg-emerald-500/30" />
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleBulkStatusChange(e.target.value)
-                      e.target.value = ''
-                    }
-                  }}
-                  className="px-2 py-1 text-sm border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-white/10 text-gray-700 dark:text-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  disabled={bulkActionLoading}
-                >
-                  <option value="">Change Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={bulkActionLoading}
-                  className="px-2 py-1 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition disabled:opacity-50"
-                >
-                  Delete Selected
-                </button>
-                <button
-                  onClick={() => setSelectedIds(new Set())}
-                  className="px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-white/10 rounded-lg transition"
-                >
-                  Clear
-                </button>
-              </motion.div>
-            )}
-
-            {/* Status Tabs */}
-            <div className="flex gap-1.5 mt-5 p-1 bg-gray-50 dark:bg-white/5 rounded-xl w-fit">
-              {STATUS_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleFilterChange(opt.value)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                    statusFilter === opt.value
-                      ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  {opt.label}
-                  <span className={`ml-1.5 text-xs ${
-                    statusFilter === opt.value
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-gray-400 dark:text-gray-600'
-                  }`}>
-                    {statusCounts[opt.value]}
-                  </span>
-                </button>
-              ))}
-            </div>
+        {loading ? (
+          <div className="py-20 text-center">
+            <div className="animate-spin w-6 h-6 border-2 border-gray-200 dark:border-white/10 border-t-gray-900 dark:border-t-white rounded-full mx-auto" />
           </div>
-
-          {/* Table */}
-          {loading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-gray-200 dark:border-white/10 border-t-emerald-500 rounded-full mx-auto" />
-              <p className="text-gray-500 dark:text-gray-500 text-sm mt-3">Loading invoices...</p>
-            </div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-gray-400 dark:text-gray-600" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                {searchQuery || statusFilter !== 'all' ? 'No matching invoices' : 'No invoices yet'}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mb-6 max-w-xs mx-auto">
-                {searchQuery || statusFilter !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'Create your first invoice to start tracking your business'}
-              </p>
-              {!searchQuery && statusFilter === 'all' && (
-                <Link to="/invoice/new">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/20"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Your First Invoice
-                  </motion.button>
-                </Link>
-              )}
-            </div>
-          ) : (
+        ) : filteredInvoices.length === 0 ? (
+          <div className="py-20 text-center">
+            <FileText className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              {searchQuery || statusFilter !== 'all' ? 'No matching invoices' : 'No invoices yet'}
+            </p>
+            {!searchQuery && statusFilter === 'all' && (
+              <Link to="/invoice/new">
+                <button className="text-sm text-gray-900 dark:text-white underline underline-offset-4 hover:no-underline">
+                  Create your first invoice
+                </button>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-white/5">
-                    <th className="text-left py-4 px-5 w-10">
-                      <input
-                        type="checkbox"
-                        checked={paginatedInvoices.length > 0 && paginatedInvoices.every(inv => selectedIds.has(inv.id))}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-emerald-500 focus:ring-emerald-500"
-                      />
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">Invoice</span>
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <SortHeader label="Client" sortKey="client" sortConfig={sortConfig} onSort={handleSort} />
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">Email</span>
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <SortHeader label="Issued" sortKey="issue_date" sortConfig={sortConfig} onSort={handleSort} />
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <SortHeader label="Due" sortKey="due_date" sortConfig={sortConfig} onSort={handleSort} />
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <SortHeader label="Amount" sortKey="amount" sortConfig={sortConfig} onSort={handleSort} />
-                    </th>
-                    <th className="text-left py-4 px-5">
-                      <SortHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />
-                    </th>
-                    <th className="text-right py-4 px-5 text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">Actions</th>
+                    <th className="text-left py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Invoice</th>
+                    <th className="text-left py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Client</th>
+                    <th className="text-left py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden md:table-cell">Date</th>
+                    <th className="text-right py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Amount</th>
+                    <th className="text-left py-3 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide pl-6">Status</th>
+                    <th className="text-right py-3 w-24"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                  {paginatedInvoices.map((invoice, index) => {
+                <tbody>
+                  {paginatedInvoices.map((invoice) => {
                     const total = calculateInvoiceTotal(invoice)
                     const status = getInvoiceStatus(invoice)
 
                     return (
-                      <motion.tr
+                      <tr
                         key={invoice.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                        className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors group ${selectedIds.has(invoice.id) ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''}`}
+                        className="border-b border-gray-50 dark:border-white/[0.02] hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors group"
                       >
-                        <td className="py-4 px-5">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(invoice.id)}
-                            onChange={(e) => handleSelectOne(invoice.id, e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-emerald-500 focus:ring-emerald-500"
-                          />
-                        </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="py-4">
+                          <Link
+                            to={`/invoice/${invoice.id}`}
+                            className="text-sm font-medium text-gray-900 dark:text-white hover:underline flex items-center gap-1 group/link"
+                          >
                             {generateInvoiceId(invoice)}
-                          </span>
+                            <ArrowUpRight className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </Link>
                         </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm text-gray-900 dark:text-white">
+                        <td className="py-4">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
                             {invoice.client_name || invoice.clientName || '-'}
                           </span>
                         </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm text-gray-500 dark:text-gray-500">
-                            {invoice.client_email || invoice.clientEmail || '-'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm text-gray-500 dark:text-gray-500">
+                        <td className="py-4 hidden md:table-cell">
+                          <span className="text-sm text-gray-400 dark:text-gray-500">
                             {formatDate(invoice.issue_date || invoice.issueDate)}
                           </span>
                         </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm text-gray-500 dark:text-gray-500">
-                            {formatDate(invoice.due_date || invoice.dueDate)}
-                          </span>
-                        </td>
-                        <td className="py-4 px-5">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="py-4 text-right">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
                             {formatCurrency(total, invoice.currency)}
                           </span>
                         </td>
-                        <td className="py-4 px-5">
+                        <td className="py-4 pl-6">
                           <div className="relative inline-block">
                             <StatusBadge status={status} />
                             <select
@@ -933,104 +363,63 @@ export const Dashboard = () => {
                             </select>
                           </div>
                         </td>
-                        <td className="py-4 px-5 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <td className="py-4 text-right">
+                          <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Link to={`/invoice/${invoice.id}`}>
-                              <button className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition" title="Edit">
-                                <Edit2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                              <button className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition" title="Edit">
+                                <Edit2 className="w-4 h-4 text-gray-400" />
                               </button>
                             </Link>
                             <button
-                              className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition"
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition"
                               onClick={() => handleDuplicate(invoice)}
                               title="Duplicate"
                             >
-                              <Copy className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                              <Copy className="w-4 h-4 text-gray-400" />
                             </button>
                             <button
-                              className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
+                              className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition"
                               onClick={() => handleDelete(invoice.id)}
                               disabled={deletingId === invoice.id}
                               title="Delete"
                             >
-                              <Trash2 className="w-4 h-4 text-red-400" />
+                              <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
                             </button>
                           </div>
                         </td>
-                      </motion.tr>
+                      </tr>
                     )
                   })}
                 </tbody>
               </table>
-
-              {/* Pagination */}
-              {filteredInvoices.length > 0 && (
-                <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-white/5">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500">
-                    <span>Show</span>
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value))
-                        setCurrentPage(1)
-                      }}
-                      className="px-2 py-1.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      {ITEMS_PER_PAGE_OPTIONS.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                    <span>of {filteredInvoices.length} entries</span>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                    >
-                      <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum
-                      if (totalPages <= 5) {
-                        pageNum = i + 1
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i
-                      } else {
-                        pageNum = currentPage - 2 + i
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`w-9 h-9 text-sm rounded-lg transition ${
-                            currentPage === pageNum
-                              ? 'bg-emerald-500 text-white font-semibold'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    })}
-
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                    >
-                      <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
-        </motion.div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-6">
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </Layout>
   )

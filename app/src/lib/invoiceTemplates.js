@@ -1,26 +1,132 @@
 // Invoice template configurations
 export const INVOICE_TEMPLATES = {
+  minimal: {
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Clean & simple',
+    preview: 'Understated with lots of whitespace',
+    styles: {
+      headerBg: '#ffffff',
+      headerText: '#111111',
+      accentColor: '#10b981',
+      bodyBg: '#ffffff',
+      bodyText: '#333333',
+      mutedText: '#888888',
+      borderColor: '#eeeeee',
+      tableHeaderBg: '#fafafa',
+      tableHeaderText: '#333333',
+      totalsBg: '#fafafa',
+      paymentBg: '#fafafa',
+      paymentBorder: '#10b981',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+  },
   modern: {
     id: 'modern',
     name: 'Modern',
-    description: 'Clean design with accent colors',
+    description: 'Bold & professional',
     preview: 'Sleek, contemporary look with colored headers',
     styles: {
-      headerBg: '#1a1a1a',
+      headerBg: '#3b82f6',
       headerText: '#ffffff',
-      accentColor: '#1a1a1a',
+      accentColor: '#3b82f6',
       bodyBg: '#ffffff',
-      bodyText: '#333333',
-      mutedText: '#666666',
-      borderColor: '#e5e5e5',
-      tableHeaderBg: '#1a1a1a',
+      bodyText: '#1e293b',
+      mutedText: '#64748b',
+      borderColor: '#e2e8f0',
+      tableHeaderBg: '#3b82f6',
       tableHeaderText: '#ffffff',
-      totalsBg: '#f5f5f5',
-      paymentBg: '#f8f8f8',
-      paymentBorder: '#1a1a1a',
-      fontFamily: 'Arial, Helvetica, sans-serif',
+      totalsBg: '#eff6ff',
+      paymentBg: '#f8fafc',
+      paymentBorder: '#3b82f6',
+      fontFamily: '"Inter", -apple-system, sans-serif',
     },
   },
+  elegant: {
+    id: 'elegant',
+    name: 'Elegant',
+    description: 'Sophisticated & refined',
+    preview: 'Timeless design with refined typography',
+    styles: {
+      headerBg: '#8b5cf6',
+      headerText: '#ffffff',
+      accentColor: '#8b5cf6',
+      bodyBg: '#ffffff',
+      bodyText: '#1e1b4b',
+      mutedText: '#6b7280',
+      borderColor: '#e9d5ff',
+      tableHeaderBg: '#8b5cf6',
+      tableHeaderText: '#ffffff',
+      totalsBg: '#faf5ff',
+      paymentBg: '#faf5ff',
+      paymentBorder: '#8b5cf6',
+      fontFamily: 'Georgia, "Times New Roman", serif',
+    },
+  },
+  bold: {
+    id: 'bold',
+    name: 'Bold',
+    description: 'Strong & impactful',
+    preview: 'High contrast with bold typography',
+    styles: {
+      headerBg: '#f59e0b',
+      headerText: '#000000',
+      accentColor: '#f59e0b',
+      bodyBg: '#ffffff',
+      bodyText: '#000000',
+      mutedText: '#555555',
+      borderColor: '#fed7aa',
+      tableHeaderBg: '#f59e0b',
+      tableHeaderText: '#000000',
+      totalsBg: '#fffbeb',
+      paymentBg: '#fffbeb',
+      paymentBorder: '#f59e0b',
+      fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    },
+  },
+  nature: {
+    id: 'nature',
+    name: 'Nature',
+    description: 'Fresh & organic',
+    preview: 'Earthy tones with natural feel',
+    styles: {
+      headerBg: '#22c55e',
+      headerText: '#ffffff',
+      accentColor: '#22c55e',
+      bodyBg: '#ffffff',
+      bodyText: '#14532d',
+      mutedText: '#4b5563',
+      borderColor: '#bbf7d0',
+      tableHeaderBg: '#22c55e',
+      tableHeaderText: '#ffffff',
+      totalsBg: '#f0fdf4',
+      paymentBg: '#f0fdf4',
+      paymentBorder: '#22c55e',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+  },
+  dark: {
+    id: 'dark',
+    name: 'Dark',
+    description: 'Sleek & premium',
+    preview: 'Dark mode for modern professionals',
+    styles: {
+      headerBg: '#1e293b',
+      headerText: '#f8fafc',
+      accentColor: '#e5e7eb',
+      bodyBg: '#0f172a',
+      bodyText: '#e2e8f0',
+      mutedText: '#94a3b8',
+      borderColor: '#334155',
+      tableHeaderBg: '#1e293b',
+      tableHeaderText: '#f8fafc',
+      totalsBg: '#1e293b',
+      paymentBg: '#1e293b',
+      paymentBorder: '#475569',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+  },
+  // Legacy templates for backward compatibility
   classic: {
     id: 'classic',
     name: 'Classic',
@@ -40,48 +146,6 @@ export const INVOICE_TEMPLATES = {
       paymentBg: '#f9f9f9',
       paymentBorder: '#2c3e50',
       fontFamily: 'Georgia, "Times New Roman", serif',
-    },
-  },
-  minimal: {
-    id: 'minimal',
-    name: 'Minimal',
-    description: 'Simple and elegant',
-    preview: 'Understated with lots of whitespace',
-    styles: {
-      headerBg: '#ffffff',
-      headerText: '#111111',
-      accentColor: '#111111',
-      bodyBg: '#ffffff',
-      bodyText: '#333333',
-      mutedText: '#888888',
-      borderColor: '#eeeeee',
-      tableHeaderBg: '#fafafa',
-      tableHeaderText: '#333333',
-      totalsBg: '#fafafa',
-      paymentBg: '#fafafa',
-      paymentBorder: '#dddddd',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    },
-  },
-  bold: {
-    id: 'bold',
-    name: 'Bold',
-    description: 'Strong visual impact',
-    preview: 'High contrast with bold typography',
-    styles: {
-      headerBg: '#000000',
-      headerText: '#ffffff',
-      accentColor: '#ff6b35',
-      bodyBg: '#ffffff',
-      bodyText: '#000000',
-      mutedText: '#555555',
-      borderColor: '#000000',
-      tableHeaderBg: '#000000',
-      tableHeaderText: '#ffffff',
-      totalsBg: '#fff3ee',
-      paymentBg: '#f5f5f5',
-      paymentBorder: '#ff6b35',
-      fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
     },
   },
   blue: {
@@ -107,17 +171,27 @@ export const INVOICE_TEMPLATES = {
   },
 }
 
-export const DEFAULT_TEMPLATE = 'modern'
+export const DEFAULT_TEMPLATE = 'minimal'
 
 export const getTemplate = (templateId) => {
   return INVOICE_TEMPLATES[templateId] || INVOICE_TEMPLATES[DEFAULT_TEMPLATE]
 }
 
-export const getTemplateStyles = (templateId) => {
+export const getTemplateStyles = (templateId, customAccentColor = null) => {
   const template = getTemplate(templateId)
   let styles = { ...template.styles }
 
-  // Apply custom branding overrides if enabled
+  // Apply custom accent color if provided
+  if (customAccentColor) {
+    styles = {
+      ...styles,
+      accentColor: customAccentColor,
+      tableHeaderBg: customAccentColor,
+      paymentBorder: customAccentColor,
+    }
+  }
+
+  // Apply custom branding overrides if enabled (legacy support)
   if (typeof window !== 'undefined') {
     try {
       const customBranding = JSON.parse(localStorage.getItem('custom_branding') || '{}')
