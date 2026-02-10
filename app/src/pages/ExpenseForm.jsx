@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useExpenses } from '../hooks/useExpenses'
+import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
 import { exportToPDF } from '../lib/pdfExport'
-import { getDefaultCurrency } from '../lib/invoiceNumber'
+import { getDefaultCurrency, getLatestInvNumber } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 import { ExpensePreview, generateExpensePrintHTML } from '../components/ExpensePreview'
 import { Layout } from '../components/Layout'
@@ -20,7 +21,6 @@ import {
 } from 'lucide-react'
 
 const DOCUMENT_TYPES = [
-  { id: 'salary', label: 'Salary: Staff Costs', suffix: '', category: null },
   { id: 'office', label: 'Office: IT & Equipment', suffix: '-OFF', category: 'Office' },
   { id: 'ga', label: 'General & Administrative', suffix: '-GA', category: 'Other' },
   { id: 'travel', label: 'Travel & Events', suffix: '-TE', category: 'Travel' },
@@ -43,13 +43,9 @@ const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$
 
 const defaultExpenseItem = { date: '', description: '', category: 'Other', amount: 0 }
 
-const generateReportNumber = (existingExpenses = []) => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const existingNumbers = existingExpenses.map(exp => exp.report_number || exp.reportNumber || '').filter(Boolean)
-  const sequences = existingNumbers.map(num => { const m = num.match(/(\d+)$/); return m ? parseInt(m[1], 10) : 0 })
-  const maxSeq = sequences.length > 0 ? Math.max(...sequences) : 0
-  return `EXP-${year}-${String(maxSeq + 1).padStart(3, '0')}`
+const generateReportNumber = (existingInvoices = []) => {
+  const latestInv = getLatestInvNumber(existingInvoices)
+  return `EXP-${latestInv}`
 }
 
 const F = ({ label, children, className = '' }) => (
@@ -69,6 +65,7 @@ export const ExpenseForm = () => {
   const pdfRef = useRef(null)
 
   const { expenses: allExpenses, createExpense, updateExpense, getExpense } = useExpenses()
+  const { invoices } = useInvoices()
   const { profiles, clients, saveClient, savedExpenses } = useProfiles()
 
   const today = new Date().toISOString().split('T')[0]
@@ -76,7 +73,7 @@ export const ExpenseForm = () => {
   const defaultProfile = profiles.length > 0 ? profiles[0] : null
 
   const [data, setData] = useState({
-    reportNumber: 'EXP-001',
+    reportNumber: 'EXP-INV-001',
     date: today,
     periodStart: '',
     periodEnd: '',
@@ -122,18 +119,18 @@ export const ExpenseForm = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultProfile, isNew])
 
-  // Generate report number
+  // Generate report number based on latest invoice
   useEffect(() => {
     if (isNew) {
-      const generated = generateReportNumber(allExpenses)
+      const generated = generateReportNumber(invoices)
       setData(prev => {
-        if (prev.reportNumber === 'EXP-001' || !prev.reportNumber) {
+        if (prev.reportNumber === 'EXP-INV-001' || !prev.reportNumber || /^EXP-INV-\d+$/.test(prev.reportNumber)) {
           return { ...prev, reportNumber: generated }
         }
         return prev
       })
     }
-  }, [allExpenses, isNew])
+  }, [invoices, isNew])
 
   // Load existing
   useEffect(() => {
@@ -164,9 +161,9 @@ export const ExpenseForm = () => {
         })
         // Detect doc type from number suffix
         const num = expense.report_number || expense.reportNumber || ''
-        if (num.endsWith('-OFF')) setDocType('office')
-        else if (num.endsWith('-GA')) setDocType('ga')
-        else if (num.endsWith('-TE')) setDocType('travel')
+        if (/-(OFF)$/.test(num)) setDocType('office')
+        else if (/-(GA)$/.test(num)) setDocType('ga')
+        else if (/-(TE)$/.test(num)) setDocType('travel')
         if (expense.notes) setShowOptional(true)
       }
       setLoading(false)
@@ -182,6 +179,7 @@ export const ExpenseForm = () => {
     setDocType(newType)
     if (!isSame) {
       setData(prev => {
+        // Strip any existing suffix, keep the EXP-INV-XXX base
         const baseNum = prev.reportNumber.replace(/-(OFF|GA|TE)$/, '')
         const updates = { ...prev, reportNumber: baseNum + type.suffix, notes: type.label }
         // Set default category on first expense item

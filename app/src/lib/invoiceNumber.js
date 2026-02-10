@@ -1,22 +1,37 @@
 /**
- * Generate a typed invoice number based on document type prefix.
- * Scans existing invoices matching the prefix and auto-increments.
- * E.g. SAL-2026-01, SAL-2026-02, OFF-2026-01
+ * Generate the next INV-XXX number by scanning existing invoices.
+ * E.g. INV-001, INV-002, INV-003
  */
-export const generateTypedInvoiceNumber = (prefix, existingInvoices = []) => {
-  const year = new Date().getFullYear()
+export const generateNextInvNumber = (existingInvoices = []) => {
   const matching = existingInvoices
     .map(inv => inv.invoice_number || inv.invoiceNumber || '')
-    .filter(num => num.startsWith(`${prefix}-`))
+    .filter(num => /^INV-\d+$/.test(num))
 
   const sequences = matching.map(num => {
-    const matches = num.match(/(\d+)$/)
-    return matches ? parseInt(matches[1], 10) : 0
+    const m = num.match(/INV-(\d+)$/)
+    return m ? parseInt(m[1], 10) : 0
   })
 
   const maxSeq = sequences.length > 0 ? Math.max(...sequences) : 0
-  const nextSeq = String(maxSeq + 1).padStart(2, '0')
-  return `${prefix}-${year}-${nextSeq}`
+  return `INV-${String(maxSeq + 1).padStart(3, '0')}`
+}
+
+/**
+ * Get the latest INV-XXX number for linking expense reports.
+ * Returns the highest INV number, or INV-001 if none exist.
+ */
+export const getLatestInvNumber = (existingInvoices = []) => {
+  const matching = existingInvoices
+    .map(inv => inv.invoice_number || inv.invoiceNumber || '')
+    .filter(num => /^INV-\d+$/.test(num))
+
+  const sequences = matching.map(num => {
+    const m = num.match(/INV-(\d+)$/)
+    return m ? parseInt(m[1], 10) : 0
+  })
+
+  const maxSeq = sequences.length > 0 ? Math.max(...sequences) : 0
+  return maxSeq > 0 ? `INV-${String(maxSeq).padStart(3, '0')}` : 'INV-001'
 }
 
 /**

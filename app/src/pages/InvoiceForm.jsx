@@ -4,7 +4,7 @@ import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
 import { exportToPDF } from '../lib/pdfExport'
 import { openEmailClient } from '../lib/emailInvoice'
-import { generateInvoiceNumber, generateTypedInvoiceNumber, getDefaultCurrency, getDefaultVatRate, calculateDueDate } from '../lib/invoiceNumber'
+import { generateInvoiceNumber, generateNextInvNumber, getDefaultCurrency, getDefaultVatRate, calculateDueDate } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 import { InvoicePreview, generatePrintHTML } from '../components/InvoicePreview'
 import { SignatureCanvas } from '../components/SignatureCanvas'
@@ -38,10 +38,7 @@ const CURRENCIES = [
 const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', CZK: 'Kč' }
 
 const DOCUMENT_TYPES = [
-  { id: 'salary', label: 'Salary', prefix: 'SAL', category: null },
-  { id: 'office', label: 'Office & IT', prefix: 'OFF', category: 'Office' },
-  { id: 'ga', label: 'General & Admin', prefix: 'GA', category: 'Other' },
-  { id: 'travel', label: 'Travel & Events', prefix: 'TE', category: 'Travel' },
+  { id: 'salary', label: 'Salary: Staff Costs' },
 ]
 
 const defaultLineItem = { description: '', comment: '', quantity: 1, price: 0, vat: 0 }
@@ -170,10 +167,7 @@ export const InvoiceForm = () => {
         })
         // Detect doc type from number prefix
         const num = invoice.invoice_number || invoice.invoiceNumber || ''
-        if (num.startsWith('SAL-')) setDocType('salary')
-        else if (num.startsWith('OFF-')) setDocType('office')
-        else if (num.startsWith('GA-')) setDocType('ga')
-        else if (num.startsWith('TE-')) setDocType('travel')
+        if (/^INV-\d+$/.test(num)) setDocType('salary')
         // Show optional sections if they have content
         if (invoice.notes || invoice.signature || invoice.logo || (invoice.expenses && invoice.expenses.length > 0)) {
           setShowOptional(true)
@@ -202,8 +196,8 @@ export const InvoiceForm = () => {
     const newType = isSame ? null : type.id
     setDocType(newType)
     if (!isSame) {
-      const typedNumber = generateTypedInvoiceNumber(type.prefix, invoices)
-      setData(prev => ({ ...prev, invoiceNumber: typedNumber, notes: type.label }))
+      const invNumber = generateNextInvNumber(invoices)
+      setData(prev => ({ ...prev, invoiceNumber: invNumber, notes: type.label }))
     } else {
       const defaultNumber = generateInvoiceNumber(invoices)
       setData(prev => ({ ...prev, invoiceNumber: defaultNumber }))
