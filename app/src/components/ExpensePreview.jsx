@@ -58,7 +58,17 @@ export const ExpensePreview = ({ data }) => {
     return acc
   }, {})
 
+  // Collect all image attachments for rendering as extra pages
+  const allAttachments = expenses.flatMap((exp, i) =>
+    (exp.attachments || []).filter(a => a.type?.startsWith('image/')).map(a => ({
+      ...a,
+      expenseDescription: exp.description || `Expense ${i + 1}`,
+    }))
+  )
+  const totalPages = 1 + allAttachments.length
+
   return (
+    <div>
     <div
       style={{
         padding: '32px 36px',
@@ -146,12 +156,6 @@ export const ExpensePreview = ({ data }) => {
                   <div className="col-span-5">
                     <div className="font-medium" style={{ color: isDark ? '#e2e8f0' : '#334155' }}>
                       {exp.description}
-                      {exp.attachments?.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 ml-1.5 text-[10px] font-normal" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                          {exp.attachments.length}
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="col-span-3 text-xs" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
@@ -251,10 +255,42 @@ export const ExpensePreview = ({ data }) => {
             style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
           >
             <span>{yourName || 'Your Company'}</span>
-            <span>{reportNumber} · 1/1</span>
+            <span>{reportNumber} · 1/{totalPages}</span>
           </div>
         </div>
       </div>
+    </div>
+
+    {/* Attachment pages */}
+    {allAttachments.map((att, i) => (
+      <div
+        key={i}
+        style={{
+          padding: '32px 36px',
+          height: '297mm',
+          minHeight: '297mm',
+          position: 'relative',
+          backgroundColor: styles.bodyBg,
+          color: styles.bodyText,
+          fontFamily: styles.fontFamily,
+        }}
+      >
+        <div style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+          Attachment
+        </div>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: styles.bodyText, marginBottom: '16px' }}>
+          {att.name}
+          <span style={{ color: isDark ? '#64748b' : '#94a3b8', fontWeight: 400, marginLeft: '8px' }}>— {att.expenseDescription}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1 }}>
+          <img src={att.data} alt={att.name} style={{ maxWidth: '100%', maxHeight: '240mm', objectFit: 'contain', borderRadius: '4px' }} />
+        </div>
+        <div style={{ position: 'absolute', bottom: '32px', left: '36px', right: '36px', display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, paddingTop: '12px', fontSize: '11px', color: isDark ? '#64748b' : '#94a3b8' }}>
+          <span>{yourName || 'Your Company'}</span>
+          <span>{reportNumber} · {i + 2}/{totalPages}</span>
+        </div>
+      </div>
+    ))}
     </div>
   )
 }
@@ -308,6 +344,14 @@ export const generateExpensePrintHTML = (data) => {
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
   const bgMuted = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
 
+  const printAttachments = expenses.flatMap((exp, i) =>
+    (exp.attachments || []).filter(a => a.type?.startsWith('image/')).map(a => ({
+      ...a,
+      expenseDescription: exp.description || `Expense ${i + 1}`,
+    }))
+  )
+  const printTotalPages = 1 + printAttachments.length
+
   return `
     <!DOCTYPE html>
     <html>
@@ -341,6 +385,7 @@ export const generateExpensePrintHTML = (data) => {
             .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
             .bottom-section { position: absolute; bottom: 0; left: 0; right: 0; }
             .footer { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${labelColor}; }
+            .att-page { page-break-before: always; }
             @media print { body { padding: 32px 36px; } }
         </style>
     </head>
@@ -387,7 +432,7 @@ export const generateExpensePrintHTML = (data) => {
                     ${expenses.filter(e => e.description || e.amount).map(exp => `
                         <div class="item-row">
                             <div style="font-family: monospace; font-size: 12px; color: ${labelColor}">${fmtDate(exp.date)}</div>
-                            <div style="font-weight: 500">${exp.description || ''}${(exp.attachments?.length > 0) ? ` <span style="color: ${labelColor}; font-size: 10px; font-weight: 400;">&#x1F4CE; ${exp.attachments.length}</span>` : ''}</div>
+                            <div style="font-weight: 500">${exp.description || ''}</div>
                             <div style="font-size: 12px; color: ${labelColor}">${exp.category || 'Other'}</div>
                             <div>${formatCurr(exp.amount)}</div>
                         </div>
@@ -419,10 +464,28 @@ export const generateExpensePrintHTML = (data) => {
 
                 <div class="footer">
                     <span>${yourName || 'Your Company'}</span>
-                    <span>${reportNumber} · 1/1</span>
+                    <span>${reportNumber} · 1/${printTotalPages}</span>
                 </div>
             </div>
         </div>
+
+        ${printAttachments.map((att, i) => `
+        <div class="container" style="page-break-before: always;">
+            <div style="color: ${labelColor}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Attachment</div>
+            <div style="font-size: 13px; font-weight: 500; margin-bottom: 16px;">
+                ${att.name}
+                <span style="color: ${labelColor}; font-weight: 400; margin-left: 8px;">— ${att.expenseDescription}</span>
+            </div>
+            <div style="text-align: center;">
+                <img src="${att.data}" alt="${att.name}" style="max-width: 100%; max-height: 240mm; object-fit: contain; border-radius: 4px;" />
+            </div>
+            <div class="footer" style="position: absolute; bottom: 0; left: 0; right: 0;">
+                <span>${yourName || 'Your Company'}</span>
+                <span>${reportNumber} · ${i + 2}/${printTotalPages}</span>
+            </div>
+        </div>
+        `).join('')}
+
         <script>window.onload = () => window.print();</script>
     </body>
     </html>
