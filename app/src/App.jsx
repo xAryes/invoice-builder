@@ -1,169 +1,41 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './hooks/useAuth'
 import { InvoiceProvider } from './hooks/useInvoices'
 import { ProfileProvider } from './hooks/useProfiles'
+import { ExpenseProvider } from './hooks/useExpenses'
 import { ThemeProvider } from './hooks/useTheme'
-import { RecurringInvoicesProvider } from './hooks/useRecurringInvoices'
-import { InvoiceHistoryProvider } from './hooks/useInvoiceHistory'
 import { ToastProvider } from './components/ui'
-import { Login, Signup, ForgotPassword, Dashboard, InvoiceEditor, GuidedInvoiceEditor, SteppedInvoiceEditor, Settings, Clients, RecurringInvoices, Welcome } from './pages'
-import { isSupabaseConfigured } from './lib/supabase'
+import { Layout } from './components/Layout'
 
+const InvoiceForm = lazy(() => import('./pages/InvoiceForm').then(m => ({ default: m.InvoiceForm })))
+const ExpenseForm = lazy(() => import('./pages/ExpenseForm').then(m => ({ default: m.ExpenseForm })))
+const Documents = lazy(() => import('./pages/Documents').then(m => ({ default: m.Documents })))
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full" />
+function PageLoader() {
+  return (
+    <Layout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 dark:border-gray-600 dark:border-t-white rounded-full" />
       </div>
-    )
-  }
-
-  // In demo mode (no Supabase), allow access without authentication
-  if (!isSupabaseConfigured()) {
-    return children
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
-  return children
-}
-
-// Public Route component (redirect to dashboard if logged in)
-const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full" />
-      </div>
-    )
-  }
-
-  // In demo mode, still show auth pages but allow navigation to dashboard
-  if (user && isSupabaseConfigured()) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return children
+    </Layout>
+  )
 }
 
 function AppRoutes() {
-  const { user } = useAuth()
-
   return (
-    <Routes>
-      {/* Welcome page - FIRST thing users see */}
-      <Route
-        path="/"
-        element={
-          user || !isSupabaseConfigured() ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Welcome />
-          )
-        }
-      />
-
-      {/* Legacy auth routes (redirect to welcome) */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Navigate to="/" replace />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <Navigate to="/" replace />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        }
-      />
-
-      {/* Redirect old pricing route to home */}
-      <Route
-        path="/pricing"
-        element={<Navigate to="/" replace />}
-      />
-
-      {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invoice/new"
-        element={
-          <ProtectedRoute>
-            <SteppedInvoiceEditor />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invoice/:id"
-        element={
-          <ProtectedRoute>
-            <InvoiceEditor />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/guided-invoice"
-        element={
-          <ProtectedRoute>
-            <GuidedInvoiceEditor />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/clients"
-        element={
-          <ProtectedRoute>
-            <Clients />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/recurring"
-        element={
-          <ProtectedRoute>
-            <RecurringInvoices />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={<InvoiceForm />} />
+        <Route path="/invoice/new" element={<InvoiceForm />} />
+        <Route path="/invoice/:id" element={<InvoiceForm />} />
+        <Route path="/expense/new" element={<ExpenseForm />} />
+        <Route path="/expense/:id" element={<ExpenseForm />} />
+        <Route path="/documents" element={<Documents />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
 
@@ -172,17 +44,13 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <Router>
-          <AuthProvider>
-            <InvoiceProvider>
-              <ProfileProvider>
-                <RecurringInvoicesProvider>
-                  <InvoiceHistoryProvider>
-                    <AppRoutes />
-                  </InvoiceHistoryProvider>
-                </RecurringInvoicesProvider>
-              </ProfileProvider>
-            </InvoiceProvider>
-          </AuthProvider>
+          <InvoiceProvider>
+            <ProfileProvider>
+              <ExpenseProvider>
+                <AppRoutes />
+              </ExpenseProvider>
+            </ProfileProvider>
+          </InvoiceProvider>
         </Router>
       </ToastProvider>
     </ThemeProvider>

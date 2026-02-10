@@ -8,7 +8,7 @@ export const INVOICE_TEMPLATES = {
     styles: {
       headerBg: '#ffffff',
       headerText: '#111111',
-      accentColor: '#10b981',
+      accentColor: '#4d65ff',
       bodyBg: '#ffffff',
       bodyText: '#333333',
       mutedText: '#888888',
@@ -17,7 +17,7 @@ export const INVOICE_TEMPLATES = {
       tableHeaderText: '#333333',
       totalsBg: '#fafafa',
       paymentBg: '#fafafa',
-      paymentBorder: '#10b981',
+      paymentBorder: '#4d65ff',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     },
   },

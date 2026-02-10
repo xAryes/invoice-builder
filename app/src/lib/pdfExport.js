@@ -26,9 +26,9 @@ export const exportToPDF = async (element, filename = 'invoice.pdf') => {
     format: 'a4',
   })
 
-  // Add image to PDF
-  const imgData = canvas.toDataURL('image/png')
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+  // Add image to PDF (JPEG is more reliable with jsPDF)
+  const imgData = canvas.toDataURL('image/jpeg', 0.95)
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
 
   // If content exceeds one page by more than 5mm, add more pages
   // This threshold prevents blank pages from small pixel overflow
@@ -37,7 +37,7 @@ export const exportToPDF = async (element, filename = 'invoice.pdf') => {
 
   while (heightLeft > 5) {
     pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
     heightLeft -= pageHeight
     position -= pageHeight
   }
@@ -67,8 +67,8 @@ export const generatePDFBlob = async (element) => {
     format: 'a4',
   })
 
-  const imgData = canvas.toDataURL('image/png')
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+  const imgData = canvas.toDataURL('image/jpeg', 0.95)
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
 
   return pdf.output('blob')
 }

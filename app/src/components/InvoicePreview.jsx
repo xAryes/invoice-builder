@@ -2,13 +2,17 @@ import { getTemplateStyles, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 
 const formatCurrency = (amount, currency) => {
   const symbols = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr ', NOK: 'kr ', DKK: 'kr ', PLN: 'zł', CZK: 'Kč' }
-  return `${symbols[currency] || currency + ' '}${amount.toFixed(2)}`
+  return `${symbols[currency] || currency + ' '}${Number(amount || 0).toFixed(2)}`
 }
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const parts = dateStr.split('T')[0].split('-')
+  if (parts.length === 3) {
+    const date = new Date(parts[0], parts[1] - 1, parts[2])
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+  return dateStr
 }
 
 export const InvoicePreview = ({ data, fullScreen = false }) => {
@@ -17,7 +21,6 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
     issueDate,
     dueDate,
     currency = 'EUR',
-    projectName,
     notes,
     yourName,
     yourAddress,
@@ -43,13 +46,13 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
   const isDark = template === 'midnight' || template === 'charcoal'
 
   const calculateSubtotal = () =>
-    lineItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+    lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0)
 
   const calculateVat = () =>
-    lineItems.reduce((sum, item) => sum + (item.quantity * item.price * item.vat / 100), 0)
+    lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0) * (Number(item.vat) || 0) / 100, 0)
 
   const calculateExpenses = () =>
-    expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0)
 
   const calculateTotal = () => calculateSubtotal() + calculateVat() + calculateExpenses()
 
@@ -142,7 +145,7 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
             </div>
             {lineItems.filter(item => item.description).length > 0 ? (
               lineItems.filter(item => item.description).map((item, i) => {
-                const lineTotal = (item.quantity || 0) * (item.price || 0) * (1 + (item.vat || 0) / 100)
+                const lineTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0) * (1 + (Number(item.vat) || 0) / 100)
                 return (
                   <div key={i} className="grid grid-cols-12 gap-2 py-2 text-sm">
                     <div className="col-span-6">
@@ -156,10 +159,10 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
                       )}
                     </div>
                     <div className="col-span-2 text-right font-mono" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                      {item.quantity || 0}
+                      {Number(item.quantity) || 0}
                     </div>
                     <div className="col-span-2 text-right font-mono" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                      {formatCurrency(item.price || 0, currency)}
+                      {formatCurrency(Number(item.price) || 0, currency)}
                     </div>
                     <div className="col-span-2 text-right font-semibold font-mono">
                       {formatCurrency(lineTotal, currency)}
@@ -335,18 +338,22 @@ export const generatePrintHTML = (data) => {
 
   const formatCurr = (amount) => {
     const symbols = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr ', NOK: 'kr ', DKK: 'kr ', PLN: 'zł', CZK: 'Kč' }
-    return `${symbols[currency] || currency + ' '}${(amount || 0).toFixed(2)}`
+    return `${symbols[currency] || currency + ' '}${Number(amount || 0).toFixed(2)}`
   }
 
   const fmtDate = (dateStr) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const parts = dateStr.split('T')[0].split('-')
+    if (parts.length === 3) {
+      const date = new Date(parts[0], parts[1] - 1, parts[2])
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    }
+    return dateStr
   }
 
-  const subtotal = lineItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.price || 0)), 0)
-  const vatAmount = lineItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.price || 0) * (item.vat || 0) / 100), 0)
-  const expensesTotal = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+  const subtotal = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0)
+  const vatAmount = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0) * (Number(item.vat) || 0) / 100, 0)
+  const expensesTotal = expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0)
   const total = subtotal + vatAmount + expensesTotal
 
   const labelColor = isDark ? '#94a3b8' : '#64748b'
@@ -449,15 +456,15 @@ export const generatePrintHTML = (data) => {
                     </div>
                     ${lineItems.filter(item => item.description).length > 0 ?
                       lineItems.filter(item => item.description).map(item => {
-                        const lineTotal = (item.quantity || 0) * (item.price || 0) * (1 + (item.vat || 0) / 100)
+                        const lineTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0) * (1 + (Number(item.vat) || 0) / 100)
                         return `
                           <div class="item-row">
                               <div>
                                   <div class="item-desc">${item.description}</div>
                                   ${item.comment ? `<div class="item-comment">${item.comment}</div>` : ''}
                               </div>
-                              <div>${item.quantity || 0}</div>
-                              <div>${formatCurr(item.price || 0)}</div>
+                              <div>${Number(item.quantity) || 0}</div>
+                              <div>${formatCurr(Number(item.price) || 0)}</div>
                               <div class="item-total">${formatCurr(lineTotal)}</div>
                           </div>
                         `

@@ -13,9 +13,9 @@ const statusConfig = {
   },
   paid: {
     label: 'Paid',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    dot: 'bg-emerald-500',
+    bg: 'bg-brand-50',
+    text: 'text-brand-700',
+    dot: 'bg-brand-500',
   },
   overdue: {
     label: 'Overdue',

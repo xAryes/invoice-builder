@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, X, AlertCircle, Info } from 'lucide-react'
 
@@ -13,10 +14,10 @@ const toastIcons = {
 
 const toastStyles = {
   success: {
-    bg: 'bg-emerald-500/10 dark:bg-emerald-500/10',
-    border: 'border-emerald-500/20',
-    icon: 'bg-emerald-500/20 text-emerald-500',
-    text: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-brand-500/10 dark:bg-brand-500/10',
+    border: 'border-brand-500/20',
+    icon: 'bg-brand-500/20 text-brand-500',
+    text: 'text-brand-700 dark:text-brand-400',
   },
   error: {
     bg: 'bg-red-500/10 dark:bg-red-500/10',

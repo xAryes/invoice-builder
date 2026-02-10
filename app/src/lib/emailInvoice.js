@@ -52,7 +52,6 @@ export const openEmailClient = (invoiceData) => {
   const { clientEmail } = invoiceData
 
   if (!clientEmail) {
-    alert('Please add a client email address first')
     return false
   }
 

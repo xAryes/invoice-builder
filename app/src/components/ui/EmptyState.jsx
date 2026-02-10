@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion'
 import { FileText, Users, Settings, RefreshCw, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -9,7 +10,7 @@ const illustrations = {
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="w-24 h-32 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-500/20 dark:to-emerald-500/5 rounded-xl border border-emerald-200 dark:border-emerald-500/20 shadow-lg shadow-emerald-500/10 mx-auto transform -rotate-6"
+        className="w-24 h-32 bg-gradient-to-br from-brand-100 to-brand-50 dark:from-brand-500/20 dark:to-brand-500/5 rounded-xl border border-brand-200 dark:border-brand-500/20 shadow-lg shadow-brand-500/10 mx-auto transform -rotate-6"
       />
       <motion.div
         initial={{ y: 10, opacity: 0 }}
@@ -39,9 +40,9 @@ const illustrations = {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 + i * 0.1 }}
           className={`w-12 h-12 rounded-full bg-gradient-to-br ${
-            i === 0 ? 'from-teal-400 to-teal-500' :
+            i === 0 ? 'from-brand-400 to-brand-500' :
             i === 1 ? 'from-purple-400 to-purple-500' :
-            'from-emerald-400 to-emerald-500'
+            'from-brand-400 to-brand-500'
           } flex items-center justify-center text-white font-bold text-sm shadow-lg ${
             i === 0 ? '-mr-3 z-30' : i === 1 ? '-mr-3 z-20' : 'z-10'
           }`}
@@ -133,7 +134,7 @@ export const EmptyState = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onAction}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-shadow"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-shadow"
         >
           <Plus className="w-4 h-4" />
           {finalActionLabel}
@@ -143,7 +144,7 @@ export const EmptyState = ({
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-shadow"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-shadow"
           >
             <Plus className="w-4 h-4" />
             {finalActionLabel}
