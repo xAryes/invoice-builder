@@ -499,7 +499,7 @@ export const ExpenseForm = () => {
                     <div className="col-span-1 flex justify-end gap-0.5">
                       <button
                         onClick={() => fileInputRefs.current[i]?.click()}
-                        className="p-1 text-gray-300 dark:text-gray-600 hover:text-brand-500 transition opacity-0 group-hover:opacity-100"
+                        className={`relative p-1 transition ${item.attachments?.length > 0 ? 'text-brand-500' : 'text-gray-300 dark:text-gray-600'} hover:text-brand-500`}
                         title="Attach receipt"
                       >
                         <Paperclip className="w-3.5 h-3.5" />
