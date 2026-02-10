@@ -12,6 +12,8 @@ import {
   Trash2,
   ArrowUpRight,
   Plus,
+  Download,
+  Check,
 } from 'lucide-react'
 
 const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', CZK: 'Kč' }
@@ -37,6 +39,18 @@ export const Documents = () => {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [downloaded, setDownloaded] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('invoice_builder_downloaded') || '[]') } catch { return [] }
+  })
+
+  const toggleDownloaded = (doc) => {
+    const key = `${doc.type}-${doc.id}`
+    setDownloaded(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      localStorage.setItem('invoice_builder_downloaded', JSON.stringify(next))
+      return next
+    })
+  }
 
   const documents = useMemo(() => {
     const invDocs = invoices.map(inv => {
@@ -206,8 +220,22 @@ export const Documents = () => {
                   </span>
                 </div>
 
+                {/* Downloaded indicator */}
+                {downloaded.includes(`${doc.type}-${doc.id}`) && (
+                  <div className="flex-shrink-0" title="Downloaded">
+                    <Check className="w-3.5 h-3.5 text-green-500" />
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => toggleDownloaded(doc)}
+                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 transition ${downloaded.includes(`${doc.type}-${doc.id}`) ? 'text-green-500 hover:text-gray-400' : 'text-gray-400 hover:text-green-500'}`}
+                    title={downloaded.includes(`${doc.type}-${doc.id}`) ? 'Mark as not downloaded' : 'Mark as downloaded'}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
                   <button onClick={() => handleDuplicate(doc)} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 transition" title="Duplicate">
                     <Copy className="w-3.5 h-3.5" />
                   </button>
