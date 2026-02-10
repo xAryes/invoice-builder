@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useExpenses } from '../hooks/useExpenses'
 import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
-import { exportToPDF } from '../lib/pdfExport'
+import { exportToPDFWithAttachments } from '../lib/pdfExport'
 import { getDefaultCurrency, getLatestInvNumber } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 import { ExpensePreview, generateExpensePrintHTML } from '../components/ExpensePreview'
@@ -18,6 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
+  Paperclip,
+  X,
 } from 'lucide-react'
 
 const DOCUMENT_TYPES = [
@@ -41,7 +43,22 @@ const CURRENCIES = [
 
 const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', CZK: 'Kč' }
 
-const defaultExpenseItem = { date: '', description: '', category: 'Other', amount: 0 }
+const defaultExpenseItem = { date: '', description: '', category: 'Other', amount: 0, attachments: [] }
+
+const compressImage = (dataUrl, maxWidth = 1200) => new Promise((resolve) => {
+  const img = new Image()
+  img.onload = () => {
+    if (img.width <= maxWidth) { resolve(dataUrl); return }
+    const canvas = document.createElement('canvas')
+    const ratio = maxWidth / img.width
+    canvas.width = maxWidth
+    canvas.height = img.height * ratio
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    resolve(canvas.toDataURL('image/jpeg', 0.85))
+  }
+  img.src = dataUrl
+})
 
 const generateReportNumber = (existingInvoices = []) => {
   const latestInv = getLatestInvNumber(existingInvoices)
@@ -102,6 +119,8 @@ export const ExpenseForm = () => {
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [lightbox, setLightbox] = useState(null) // { src, name }
+  const fileInputRefs = useRef({})
 
   // Auto-load default profile
   useEffect(() => {
@@ -213,7 +232,7 @@ export const ExpenseForm = () => {
 
   const addExpenseItem = () => setData(prev => ({ ...prev, expenses: [...prev.expenses, { ...defaultExpenseItem, date: today }] }))
   const loadSavedExpense = (saved) => setData(prev => {
-    const newExp = { date: today, description: saved.description, category: saved.category, amount: saved.amount || 0 }
+    const newExp = { date: today, description: saved.description, category: saved.category, amount: saved.amount || 0, attachments: [] }
     const emptyIdx = prev.expenses.findIndex(e => !e.description && (!e.amount || e.amount === 0))
     if (emptyIdx !== -1) {
       const updated = [...prev.expenses]
@@ -224,6 +243,42 @@ export const ExpenseForm = () => {
   })
   const removeExpenseItem = (i) => setData(prev => ({ ...prev, expenses: prev.expenses.filter((_, idx) => idx !== i) }))
   const updateExpenseItem = (i, field, value) => setData(prev => ({ ...prev, expenses: prev.expenses.map((item, idx) => idx === i ? { ...item, [field]: value } : item) }))
+
+  const handleAttach = async (expenseIndex, files) => {
+    for (const file of files) {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') continue
+      const reader = new FileReader()
+      reader.onload = async () => {
+        let dataUrl = reader.result
+        if (file.type.startsWith('image/')) {
+          dataUrl = await compressImage(dataUrl)
+        }
+        // Warn if still large
+        if (dataUrl.length > 2 * 1024 * 1024) {
+          toast.warning('File is large (>2MB) — may slow down saves')
+        }
+        setData(prev => ({
+          ...prev,
+          expenses: prev.expenses.map((item, idx) => {
+            if (idx !== expenseIndex) return item
+            const attachments = [...(item.attachments || []), { name: file.name, type: file.type, data: dataUrl }]
+            return { ...item, attachments }
+          })
+        }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeAttachment = (expenseIndex, attachmentIndex) => {
+    setData(prev => ({
+      ...prev,
+      expenses: prev.expenses.map((item, idx) => {
+        if (idx !== expenseIndex) return item
+        return { ...item, attachments: (item.attachments || []).filter((_, ai) => ai !== attachmentIndex) }
+      })
+    }))
+  }
 
   const total = data.expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0)
   const sym = CURRENCY_SYMBOLS[data.currency] || data.currency
@@ -261,7 +316,14 @@ export const ExpenseForm = () => {
     try {
       await new Promise(r => setTimeout(r, 200))
       if (pdfRef.current) {
-        await exportToPDF(pdfRef.current, `${data.reportNumber || 'expense-report'}.pdf`)
+        // Collect all image attachments across expense items
+        const allAttachments = data.expenses.flatMap((exp, i) =>
+          (exp.attachments || []).filter(a => a.type.startsWith('image/')).map(a => ({
+            ...a,
+            expenseDescription: exp.description || `Expense ${i + 1}`,
+          }))
+        )
+        await exportToPDFWithAttachments(pdfRef.current, allAttachments, `${data.reportNumber || 'expense-report'}.pdf`)
         toast.success('PDF exported')
       }
     } catch (error) {
@@ -418,28 +480,80 @@ export const ExpenseForm = () => {
                 <div className="col-span-1"></div>
               </div>
               {data.expenses.map((item, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 px-3.5 py-2 items-center border-b border-gray-50 dark:border-white/[0.02] last:border-0 group">
-                  <div className="col-span-6 sm:col-span-2">
-                    <input type="date" value={item.date} onChange={e => updateExpenseItem(i, 'date', e.target.value)} className={inputClass} />
-                  </div>
-                  <div className="col-span-6 sm:col-span-4">
-                    <input type="text" value={item.description} onChange={e => updateExpenseItem(i, 'description', e.target.value)} placeholder="Description" className={inputClass} />
-                  </div>
-                  <div className="col-span-5 sm:col-span-3">
-                    <select value={item.category} onChange={e => updateExpenseItem(i, 'category', e.target.value)} className={inputClass}>
-                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-6 sm:col-span-2">
-                    <input type="number" value={item.amount} onChange={e => updateExpenseItem(i, 'amount', e.target.value)} min="0" step="0.01" className={`${inputClass} text-right`} />
-                  </div>
-                  <div className="col-span-1 flex justify-end">
-                    {data.expenses.length > 1 && (
-                      <button onClick={() => removeExpenseItem(i)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
-                        <Trash2 className="w-3.5 h-3.5" />
+                <div key={i} className="border-b border-gray-50 dark:border-white/[0.02] last:border-0 group">
+                  <div className="grid grid-cols-12 gap-2 px-3.5 py-2 items-center">
+                    <div className="col-span-6 sm:col-span-2">
+                      <input type="date" value={item.date} onChange={e => updateExpenseItem(i, 'date', e.target.value)} className={inputClass} />
+                    </div>
+                    <div className="col-span-6 sm:col-span-4">
+                      <input type="text" value={item.description} onChange={e => updateExpenseItem(i, 'description', e.target.value)} placeholder="Description" className={inputClass} />
+                    </div>
+                    <div className="col-span-5 sm:col-span-3">
+                      <select value={item.category} onChange={e => updateExpenseItem(i, 'category', e.target.value)} className={inputClass}>
+                        {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-6 sm:col-span-2">
+                      <input type="number" value={item.amount} onChange={e => updateExpenseItem(i, 'amount', e.target.value)} min="0" step="0.01" className={`${inputClass} text-right`} />
+                    </div>
+                    <div className="col-span-1 flex justify-end gap-0.5">
+                      <button
+                        onClick={() => fileInputRefs.current[i]?.click()}
+                        className="p-1 text-gray-300 dark:text-gray-600 hover:text-brand-500 transition opacity-0 group-hover:opacity-100"
+                        title="Attach receipt"
+                      >
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {(item.attachments?.length > 0) && (
+                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {item.attachments.length}
+                          </span>
+                        )}
                       </button>
-                    )}
+                      <input
+                        ref={el => fileInputRefs.current[i] = el}
+                        type="file"
+                        accept="image/*,.pdf"
+                        multiple
+                        className="hidden"
+                        onChange={e => { handleAttach(i, Array.from(e.target.files)); e.target.value = '' }}
+                      />
+                      {data.expenses.length > 1 && (
+                        <button onClick={() => removeExpenseItem(i)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {/* Attachment thumbnails */}
+                  {item.attachments?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 px-3.5 pb-2">
+                      {item.attachments.map((att, ai) => (
+                        <div key={ai} className="relative group/att">
+                          {att.type.startsWith('image/') ? (
+                            <img
+                              src={att.data}
+                              alt={att.name}
+                              className="h-10 rounded border border-gray-200 dark:border-white/10 cursor-pointer object-cover"
+                              onClick={() => setLightbox({ src: att.data, name: att.name })}
+                            />
+                          ) : (
+                            <div
+                              className="h-10 px-2 flex items-center gap-1 rounded border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.03] cursor-default"
+                            >
+                              <Paperclip className="w-3 h-3 text-gray-400" />
+                              <span className="text-[11px] text-gray-500 max-w-[80px] truncate">{att.name}</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => removeAttachment(i, ai)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="flex items-center">
@@ -527,6 +641,19 @@ export const ExpenseForm = () => {
           </div>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-8" onClick={() => setLightbox(null)}>
+          <div className="relative max-w-4xl max-h-full" onClick={e => e.stopPropagation()}>
+            <img src={lightbox.src} alt={lightbox.name} className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" />
+            <div className="absolute -top-8 left-0 text-white/70 text-sm truncate max-w-md">{lightbox.name}</div>
+            <button onClick={() => setLightbox(null)} className="absolute -top-3 -right-3 w-8 h-8 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }
