@@ -8,6 +8,7 @@ Built with React 19, Vite 7, and Tailwind CSS v4.
 
 - **Invoices** -- Split-layout editor with live A4 preview, line items with comments, VAT per line, expenses section
 - **Expense Reports** -- Categorized expenses (Travel, Office, Software, etc.) with date tracking and category summaries
+- **Expense Attachments** -- Attach receipts (images or PDFs) to expense items; PDFs are auto-converted to images. Attachments appear as extra pages in the preview, print output, and exported PDF
 - **PDF Export** -- One-click PDF generation (JPEG-based for maximum compatibility)
 - **Print** -- Clean print-optimized HTML output
 - **Email** -- Open your email client with the invoice pre-attached
@@ -24,27 +25,46 @@ Built with React 19, Vite 7, and Tailwind CSS v4.
 - **Dark Mode** -- Full dark/light theme support
 - **Signature** -- Draw or upload a signature, embedded in documents
 
-## Prerequisites
+## Getting Started
 
-- [Node.js](https://nodejs.org/) v18 or later
-- npm (comes with Node.js)
+### 1. Install Node.js (one-time setup)
 
-## Installation
+You need Node.js to run this app. If you don't have it yet:
+
+1. Go to [https://nodejs.org](https://nodejs.org)
+2. Download the **LTS** version (the big green button)
+3. Run the installer and follow the prompts (all defaults are fine)
+4. To verify it worked, open a terminal and type:
+   ```bash
+   node --version
+   ```
+   You should see something like `v20.x.x` or higher.
+
+### 2. Download and run the app
+
+Open a terminal (Terminal on Mac, Command Prompt or PowerShell on Windows) and run these commands one at a time:
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/invoice-builder.git
-cd invoice-builder
+# Download the project
+git clone https://github.com/xAryes/invoice-builder.git
 
-# Install dependencies
-cd app
+# Go into the project folder
+cd invoice-builder/app
+
+# Install dependencies (takes about 30 seconds)
 npm install
 
-# Start the development server
+# Start the app
 npm run dev
 ```
 
-The app will be available at [http://localhost:5173](http://localhost:5173).
+### 3. Open it
+
+Once you see `Local: http://localhost:5173/` in your terminal, open that link in your browser. That's it -- the app is running.
+
+To stop the app, press `Ctrl + C` in the terminal.
+
+> **No git?** You can also download the project as a ZIP from the green "Code" button on GitHub, unzip it, then start from the `cd` step above.
 
 ## Usage
 
@@ -130,8 +150,9 @@ To back up your data, export it from your browser's DevTools (`Application` > `L
 - [React Router v7](https://reactrouter.com/) -- Client-side routing
 - [Framer Motion](https://motion.dev/) -- Animations
 - [jsPDF](https://github.com/parallax/jsPDF) + [html2canvas](https://html2canvas.hertzen.com/) -- PDF export
+- [PDF.js](https://mozilla.github.io/pdf.js/) -- PDF attachment rendering (lazy-loaded)
 - [Lucide React](https://lucide.dev/) -- Icons
 
 ## License
 
-MIT
+MIT -- see [LICENSE](LICENSE) for details.
