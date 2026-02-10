@@ -61,14 +61,15 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
       className={`${fullScreen ? 'max-w-4xl mx-auto my-8 shadow-xl' : ''}`}
       style={{
         padding: '32px 36px',
-        height: '842px',
-        minHeight: '842px',
+        height: '297mm',
+        minHeight: '297mm',
+        position: 'relative',
         backgroundColor: styles.bodyBg,
         color: styles.bodyText,
         fontFamily: styles.fontFamily,
       }}
     >
-      <div className="flex flex-col h-full">
+      <div>
         {/* Header */}
         <div className="mb-6">
           <div className="flex justify-between items-start mb-4">
@@ -129,7 +130,7 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
         </div>
 
         {/* Line Items */}
-        <div className="flex-1">
+        <div>
           <div
             className="border-t border-b py-3 mb-4"
             style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
@@ -252,7 +253,7 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
         </div>
 
         {/* Payment Details + Footer — pinned to bottom */}
-        <div className="mt-auto">
+        <div style={{ position: 'absolute', bottom: '32px', left: '36px', right: '36px' }}>
           {(beneficiary || iban || bic) && (
             <div
               className="p-4 rounded-lg"
@@ -372,7 +373,7 @@ export const generatePrintHTML = (data) => {
             html, body { height: 100%; }
             body { padding: 32px 36px; background: ${styles.bodyBg}; color: ${styles.bodyText}; font-size: 13px; line-height: 1.4; }
             @page { size: A4; margin: 0; }
-            .container { height: 100%; display: flex; flex-direction: column; }
+            .container { height: 100%; position: relative; }
             .header { margin-bottom: 24px; }
             .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
             .title { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; }
@@ -384,7 +385,7 @@ export const generatePrintHTML = (data) => {
             .party-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 8px; }
             .party-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
             .party-detail { font-size: 12px; color: ${labelColor}; line-height: 1.5; }
-            .items { flex: 1; }
+            .items { }
             .items-table { border-top: 1px solid ${borderColor}; border-bottom: 1px solid ${borderColor}; padding: 12px 0; margin-bottom: 16px; }
             .items-header { display: grid; grid-template-columns: 6fr 2fr 2fr 2fr; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${labelColor}; margin-bottom: 12px; }
             .items-header > div:not(:first-child) { text-align: right; }
@@ -401,7 +402,7 @@ export const generatePrintHTML = (data) => {
             .totals-final span:last-child { font-family: monospace; }
             .notes { background: ${bgMuted}; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
             .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
-            .bottom-section { margin-top: auto; }
+            .bottom-section { position: absolute; bottom: 0; left: 0; right: 0; }
             .payment { background: ${bgMuted}; padding: 16px; border-radius: 8px; }
             .payment-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 12px; }
             .payment-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 4px 32px; font-size: 13px; }

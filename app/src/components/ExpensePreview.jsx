@@ -17,17 +17,8 @@ const formatDate = (dateStr) => {
 
 const formatPeriod = (start, end) => {
   if (!start && !end) return ''
-  const opts = { month: 'long', year: 'numeric' }
-  if (start && end) {
-    const s = new Date(start)
-    const e = new Date(end)
-    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
-      return s.toLocaleDateString('en-GB', opts)
-    }
-    return `${s.toLocaleDateString('en-GB', opts)} - ${e.toLocaleDateString('en-GB', opts)}`
-  }
-  if (start) return new Date(start).toLocaleDateString('en-GB', opts)
-  return new Date(end).toLocaleDateString('en-GB', opts)
+  if (start && end) return `${formatDate(start)} - ${formatDate(end)}`
+  return formatDate(start || end)
 }
 
 export const ExpensePreview = ({ data }) => {
@@ -45,6 +36,7 @@ export const ExpensePreview = ({ data }) => {
     beneficiary,
     iban,
     bic,
+    intermediaryBic,
     clientName,
     clientAddress,
     clientEmail,
@@ -70,14 +62,15 @@ export const ExpensePreview = ({ data }) => {
     <div
       style={{
         padding: '32px 36px',
-        height: '842px',
-        minHeight: '842px',
+        height: '297mm',
+        minHeight: '297mm',
+        position: 'relative',
         backgroundColor: styles.bodyBg,
         color: styles.bodyText,
         fontFamily: styles.fontFamily,
       }}
     >
-      <div className="flex flex-col h-full">
+      <div>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-light tracking-tight mb-4" style={{ color: styles.bodyText }}>
@@ -130,7 +123,7 @@ export const ExpensePreview = ({ data }) => {
         </div>
 
         {/* Expenses table */}
-        <div className="flex-1">
+        <div>
           <div
             className="border-t border-b py-3 mb-4"
             style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
@@ -196,26 +189,6 @@ export const ExpensePreview = ({ data }) => {
             </div>
           </div>
 
-          {/* Payment Details */}
-          {(beneficiary || iban || bic) && (
-            <div className="mb-4">
-              <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: styles.accentColor }}>
-                Payment Details
-              </div>
-              <div className="text-sm space-y-1" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                {beneficiary && (
-                  <div><span className="font-semibold">Beneficiary:</span> <span>{beneficiary}</span></div>
-                )}
-                {iban && (
-                  <div><span className="font-semibold">IBAN:</span> <span className="font-mono">{iban}</span></div>
-                )}
-                {bic && (
-                  <div><span className="font-semibold">BIC:</span> <span className="font-mono">{bic}</span></div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Notes */}
           {notes && (
             <div
@@ -228,13 +201,52 @@ export const ExpensePreview = ({ data }) => {
           )}
         </div>
 
-        {/* Footer — pinned to bottom */}
-        <div
-          className="flex justify-between items-center pt-3 mt-auto text-xs"
-          style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
-        >
-          <span>{yourName || 'Your Company'}</span>
-          <span>{reportNumber} · 1/1</span>
+        {/* Payment Details + Footer — pinned to bottom */}
+        <div style={{ position: 'absolute', bottom: '32px', left: '36px', right: '36px' }}>
+          {(beneficiary || iban || bic) && (
+            <div
+              className="p-4 rounded-lg"
+              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+            >
+              <div className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: styles.accentColor }}>
+                Payment Details
+              </div>
+              <div className="space-y-2 text-sm">
+                {beneficiary && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Beneficiary: </span>
+                    <span>{beneficiary}</span>
+                  </div>
+                )}
+                {iban && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>IBAN: </span>
+                    <span className="font-mono">{iban}</span>
+                  </div>
+                )}
+                {bic && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>BIC: </span>
+                    <span className="font-mono">{bic}</span>
+                  </div>
+                )}
+                {intermediaryBic && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Intermediary BIC: </span>
+                    <span className="font-mono">{intermediaryBic}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div
+            className="flex justify-between items-center pt-3 mt-3 text-xs"
+            style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
+          >
+            <span>{yourName || 'Your Company'}</span>
+            <span>{reportNumber} · 1/1</span>
+          </div>
         </div>
       </div>
     </div>
@@ -256,6 +268,7 @@ export const generateExpensePrintHTML = (data) => {
     beneficiary,
     iban,
     bic,
+    intermediaryBic,
     clientName,
     clientAddress,
     clientEmail,
@@ -299,7 +312,7 @@ export const generateExpensePrintHTML = (data) => {
             html, body { height: 100%; }
             body { padding: 32px 36px; background: ${styles.bodyBg}; color: ${styles.bodyText}; font-size: 13px; line-height: 1.4; }
             @page { size: A4; margin: 0; }
-            .container { height: 100%; display: flex; flex-direction: column; }
+            .container { height: 100%; position: relative; }
             .title { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 16px; }
             .meta-row { display: flex; margin-bottom: 2px; font-size: 13px; }
             .meta-label { width: 100px; font-weight: 600; color: ${labelColor}; }
@@ -307,7 +320,7 @@ export const generateExpensePrintHTML = (data) => {
             .party-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 8px; }
             .party-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
             .party-detail { font-size: 12px; color: ${labelColor}; line-height: 1.5; }
-            .items { flex: 1; }
+            .items { }
             .items-table { border-top: 1px solid ${borderColor}; border-bottom: 1px solid ${borderColor}; padding: 12px 0; margin-bottom: 16px; }
             .items-header { display: grid; grid-template-columns: 2fr 5fr 3fr 2fr; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${labelColor}; margin-bottom: 12px; }
             .items-header > div:last-child { text-align: right; }
@@ -320,7 +333,7 @@ export const generateExpensePrintHTML = (data) => {
             .payment-detail { font-size: 13px; color: ${labelColor}; line-height: 1.8; }
             .notes { background: ${bgMuted}; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
             .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
-            .bottom-section { margin-top: auto; }
+            .bottom-section { position: absolute; bottom: 0; left: 0; right: 0; }
             .footer { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${labelColor}; }
             @media print { body { padding: 32px 36px; } }
         </style>
@@ -377,17 +390,6 @@ export const generateExpensePrintHTML = (data) => {
 
                 <div class="totals-final"><span>Total</span><span>${formatCurr(total)}</span></div>
 
-                ${(beneficiary || iban || bic) ? `
-                <div class="payment">
-                    <div class="payment-label">Payment Details</div>
-                    <div class="payment-detail">
-                        ${beneficiary ? `<div><span style="font-weight: 600; color: ${labelColor}">Beneficiary:</span> ${beneficiary}</div>` : ''}
-                        ${iban ? `<div><span style="font-weight: 600; color: ${labelColor}">IBAN:</span> <span style="font-family: monospace;">${iban}</span></div>` : ''}
-                        ${bic ? `<div><span style="font-weight: 600; color: ${labelColor}">BIC:</span> <span style="font-family: monospace;">${bic}</span></div>` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
                 ${notes ? `
                 <div class="notes">
                     <div class="notes-label">Note</div>
@@ -397,6 +399,18 @@ export const generateExpensePrintHTML = (data) => {
             </div>
 
             <div class="bottom-section">
+                ${(beneficiary || iban || bic) ? `
+                <div class="payment" style="background: ${bgMuted}; padding: 16px; border-radius: 8px;">
+                    <div class="payment-label">Payment Details</div>
+                    <div style="font-size: 13px; line-height: 1.8;">
+                        ${beneficiary ? `<div><span style="font-weight: 600; color: ${labelColor}">Beneficiary:</span> ${beneficiary}</div>` : ''}
+                        ${iban ? `<div><span style="font-weight: 600; color: ${labelColor}">IBAN:</span> <span style="font-family: monospace;">${iban}</span></div>` : ''}
+                        ${bic ? `<div><span style="font-weight: 600; color: ${labelColor}">BIC:</span> <span style="font-family: monospace;">${bic}</span></div>` : ''}
+                        ${intermediaryBic ? `<div><span style="font-weight: 600; color: ${labelColor}">Intermediary BIC:</span> <span style="font-family: monospace;">${intermediaryBic}</span></div>` : ''}
+                    </div>
+                </div>
+                ` : ''}
+
                 <div class="footer">
                     <span>${yourName || 'Your Company'}</span>
                     <span>${reportNumber} · 1/1</span>

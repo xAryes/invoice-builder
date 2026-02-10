@@ -503,7 +503,7 @@ export const ExpenseForm = () => {
         {/* Right: Live Preview (visual only) */}
         <div className="hidden lg:block w-[595px] flex-shrink-0 border-l border-gray-200/60 dark:border-white/5 bg-gray-50 dark:bg-[#0a0a0c]">
           <div className="sticky top-[92px] p-4">
-            <div className="bg-white dark:bg-[#111113] rounded-lg shadow-sm border border-gray-200/40 dark:border-white/5 overflow-hidden" style={{ transform: 'scale(0.72)', transformOrigin: 'top left', width: '139%' }}>
+            <div className="bg-white dark:bg-[#111113] rounded-lg shadow-sm border border-gray-200/40 dark:border-white/5 overflow-hidden" style={{ transform: 'scale(0.54)', transformOrigin: 'top left', width: '185%' }}>
               <ExpensePreview data={data} />
             </div>
           </div>
