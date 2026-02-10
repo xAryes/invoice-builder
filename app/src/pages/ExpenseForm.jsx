@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useExpenses } from '../hooks/useExpenses'
 import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
-import { exportToPDFWithAttachments } from '../lib/pdfExport'
+import { exportExpenseReportPDF } from '../lib/pdfExport'
 import { getDefaultCurrency, getLatestInvNumber } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 import { ExpensePreview, generateExpensePrintHTML } from '../components/ExpensePreview'
@@ -110,7 +110,6 @@ export const ExpenseForm = () => {
   const navigate = useNavigate()
   const toast = useToast()
   const isNew = !id
-  const pdfRef = useRef(null)
 
   const { expenses: allExpenses, createExpense, updateExpense, getExpense } = useExpenses()
   const { invoices } = useInvoices()
@@ -368,18 +367,8 @@ export const ExpenseForm = () => {
   const handleExportPDF = async () => {
     setExporting(true)
     try {
-      await new Promise(r => setTimeout(r, 200))
-      if (pdfRef.current) {
-        // Collect all image attachments across expense items
-        const allAttachments = data.expenses.flatMap((exp, i) =>
-          (exp.attachments || []).filter(a => a.type.startsWith('image/')).map(a => ({
-            ...a,
-            expenseDescription: exp.description || `Expense ${i + 1}`,
-          }))
-        )
-        await exportToPDFWithAttachments(pdfRef.current, allAttachments, `${data.reportNumber || 'expense-report'}.pdf`)
-        toast.success('PDF exported')
-      }
+      await exportExpenseReportPDF(data, `${data.reportNumber || 'expense-report'}.pdf`)
+      toast.success('PDF exported')
     } catch (error) {
       toast.error('Failed to export PDF')
       console.error(error)
@@ -688,12 +677,6 @@ export const ExpenseForm = () => {
           </div>
         </div>
 
-        {/* PDF export source (always rendered offscreen, never display:none) */}
-        <div className="fixed -left-[9999px] top-0" style={{ width: '210mm' }}>
-          <div ref={pdfRef}>
-            <ExpensePreview data={data} showAttachmentPages={false} />
-          </div>
-        </div>
       </div>
 
       {/* Lightbox */}

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
-import { exportToPDF } from '../lib/pdfExport'
+import { exportInvoicePDF } from '../lib/pdfExport'
 import { openEmailClient } from '../lib/emailInvoice'
 import { generateInvoiceNumber, generateNextInvNumber, getDefaultCurrency, getDefaultVatRate, calculateDueDate } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
@@ -59,7 +59,6 @@ export const InvoiceForm = () => {
   const navigate = useNavigate()
   const toast = useToast()
   const isNew = !id
-  const pdfRef = useRef(null)
 
   const { invoices, createInvoice, updateInvoice, getInvoice } = useInvoices()
   const { profiles, clients, lineItems: savedItems, saveProfile, saveClient, saveLineItem } = useProfiles()
@@ -302,11 +301,8 @@ export const InvoiceForm = () => {
   const handleExportPDF = async () => {
     setExporting(true)
     try {
-      await new Promise(r => setTimeout(r, 200))
-      if (pdfRef.current) {
-        await exportToPDF(pdfRef.current, `${data.invoiceNumber || 'invoice'}.pdf`)
-        toast.success('PDF exported')
-      }
+      await exportInvoicePDF(data, `${data.invoiceNumber || 'invoice'}.pdf`)
+      toast.success('PDF exported')
     } catch (error) {
       toast.error('Failed to export PDF')
       console.error(error)
@@ -693,12 +689,6 @@ export const InvoiceForm = () => {
           </div>
         </div>
 
-        {/* PDF export source (always rendered offscreen, never display:none) */}
-        <div className="fixed -left-[9999px] top-0" style={{ width: '210mm' }}>
-          <div ref={pdfRef}>
-            <InvoicePreview data={data} />
-          </div>
-        </div>
       </div>
     </Layout>
   )
