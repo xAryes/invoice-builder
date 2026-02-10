@@ -1,3 +1,6 @@
+// Apple system font stack (SF Pro)
+const APPLE_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif'
+
 // Invoice template configurations
 export const INVOICE_TEMPLATES = {
   minimal: {
@@ -18,7 +21,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#fafafa',
       paymentBg: '#fafafa',
       paymentBorder: '#4d65ff',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
   modern: {
@@ -39,7 +42,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#eff6ff',
       paymentBg: '#f8fafc',
       paymentBorder: '#3b82f6',
-      fontFamily: '"Inter", -apple-system, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
   elegant: {
@@ -60,7 +63,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#faf5ff',
       paymentBg: '#faf5ff',
       paymentBorder: '#8b5cf6',
-      fontFamily: 'Georgia, "Times New Roman", serif',
+      fontFamily: APPLE_FONT,
     },
   },
   bold: {
@@ -81,7 +84,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#fffbeb',
       paymentBg: '#fffbeb',
       paymentBorder: '#f59e0b',
-      fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
   nature: {
@@ -102,7 +105,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#f0fdf4',
       paymentBg: '#f0fdf4',
       paymentBorder: '#22c55e',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
   dark: {
@@ -123,7 +126,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#1e293b',
       paymentBg: '#1e293b',
       paymentBorder: '#475569',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
   // Legacy templates for backward compatibility
@@ -145,7 +148,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#ecf0f1',
       paymentBg: '#f9f9f9',
       paymentBorder: '#2c3e50',
-      fontFamily: 'Georgia, "Times New Roman", serif',
+      fontFamily: APPLE_FONT,
     },
   },
   blue: {
@@ -166,7 +169,7 @@ export const INVOICE_TEMPLATES = {
       totalsBg: '#eff6ff',
       paymentBg: '#f8fafc',
       paymentBorder: '#2563eb',
-      fontFamily: '"Inter", -apple-system, sans-serif',
+      fontFamily: APPLE_FONT,
     },
   },
 }

@@ -5,7 +5,7 @@ A personal invoice and expense report generator tool. Pure localStorage, no auth
 ## Current State
 
 - **Branch**: main
-- **Last updated**: 2026-02-09
+- **Last updated**: 2026-02-10
 
 ## Architecture
 
@@ -15,8 +15,9 @@ Stripped-down personal tool: open app → blank invoice form ready to go.
 - **Split layout** on desktop: form on left, live A4 preview on right (always visible)
 - Mobile: form only, offscreen PDF render for export
 - Sticky action bar: Save, PDF, Print, Email always accessible
-- Document type presets in action bar: Salary, Office: IT & Equipment, General & Administrative, Travel & Events
-- Flat form structure: From/To cards side by side, line items table (with comment/details sub-field), payment row
+- Document type presets in action bar: Salary, Office & IT, General & Admin, Travel & Events — auto-generates typed invoice number (e.g. `SAL-2026-01`)
+- Flat form structure: From/To cards side by side, line items table (with comment/details sub-field), payment 2x2 grid (beneficiary, IBAN, BIC, intermediary BIC)
+- Saved line items: save common services in Settings > Items, load into invoices via "Load saved..." dropdown
 - Optional sections (expenses, notes, signature, style) collapsed by default
 - Client picker dropdown + "Save client for next time" inline prompt
 - Profile switcher (if multiple profiles) + "Save as default profile" prompt
@@ -91,7 +92,7 @@ Node/npm path: `/usr/local/bin` (node v24.12.0, npm 11.6.2)
 
 ### localStorage Keys
 - `invoice_builder_profiles` — Sender profiles (name, address, email, tax ID, payment details)
-- `invoice_builder_clients` — Saved clients (name, address, email, tax ID)
+- `invoice_builder_clients` — Saved clients (name, address, email, tax ID, default VAT %)
 - `invoice_builder_saved_expenses` — Recurring expense templates (description, category, amount)
 - `invoice_builder_invoices` — Invoice documents
 - `invoice_builder_expenses` — Expense report documents
@@ -102,24 +103,28 @@ Node/npm path: `/usr/local/bin` (node v24.12.0, npm 11.6.2)
 - `theme` — `light` or `dark`
 
 ### Document Type Presets
-| Type | Suffix | Category |
-|------|--------|----------|
-| Salary: Staff Costs | (none) | — |
-| Office: IT & Equipment | `-OFF` | Office |
-| General & Administrative | `-GA` | Other |
-| Travel & Events | `-TE` | Travel |
+| Type | Prefix | Example Number | Category |
+|------|--------|----------------|----------|
+| Salary | `SAL` | SAL-2026-01 | — |
+| Office & IT | `OFF` | OFF-2026-01 | Office |
+| General & Admin | `GA` | GA-2026-01 | Other |
+| Travel & Events | `TE` | TE-2026-01 | Travel |
+
+Numbers auto-increment per prefix by scanning existing invoices (e.g. if `SAL-2026-01` exists, next is `SAL-2026-02`).
 
 ## Settings Tabs
 
-1. **My Profile** — Payment details (beneficiary, IBAN, BIC) + identity (name, email, address, tax ID)
+1. **My Profile** — Payment details (beneficiary, IBAN, BIC, intermediary BIC) + identity (name, email, address, tax ID)
 2. **Invoicing** — Invoice number format, starting number, default currency/VAT/payment terms
-3. **Clients** — Add/edit/delete clients (name, email, address, tax ID)
-4. **Recurring** — Saved expense templates (description, category, amount) for quick loading
-5. **Branding** — Custom colors (accent, table header, payment border) + font override
+3. **Items** — Saved line item templates (description, comment, qty, price, VAT) for quick loading into invoices
+4. **Clients** — Add/edit/delete clients (name, email, address, tax ID, default VAT %). Loading a client applies their VAT rate to all line items.
+5. **Recurring** — Saved expense templates (description, category, amount) for quick loading
+6. **Branding** — Custom colors (accent, table header, payment border) + font override
 
 ## Key Decisions
 
-- Invoice numbers use `lib/invoiceNumber.js` which reads format from localStorage settings
+- Invoice numbers use `lib/invoiceNumber.js` which reads format from localStorage settings; `generateTypedInvoiceNumber(prefix, invoices)` for document-type-specific numbering
+- Apple system font (SF Pro) used across all invoice/expense templates
 - Due date auto-calculation only updates if the previous value was also auto-calculated
 - Sender info auto-loaded from first saved profile; shown in From card with profile switcher
 - Expense report categories: Travel, Software, Hardware, Office, Meals, Communication, Professional Services, Other

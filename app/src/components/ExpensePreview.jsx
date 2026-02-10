@@ -228,9 +228,9 @@ export const ExpensePreview = ({ data }) => {
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — pinned to bottom */}
         <div
-          className="flex justify-between items-center pt-3 mt-3 text-xs"
+          className="flex justify-between items-center pt-3 mt-auto text-xs"
           style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
         >
           <span>{yourName || 'Your Company'}</span>
@@ -295,7 +295,7 @@ export const generateExpensePrintHTML = (data) => {
     <head>
         <title>Expense Report ${reportNumber}</title>
         <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; font-family: ${styles.fontFamily}; }
+            * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
             html, body { height: 100%; }
             body { padding: 32px 36px; background: ${styles.bodyBg}; color: ${styles.bodyText}; font-size: 13px; line-height: 1.4; }
             @page { size: A4; margin: 0; }
@@ -320,6 +320,7 @@ export const generateExpensePrintHTML = (data) => {
             .payment-detail { font-size: 13px; color: ${labelColor}; line-height: 1.8; }
             .notes { background: ${bgMuted}; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
             .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
+            .bottom-section { margin-top: auto; }
             .footer { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${labelColor}; }
             @media print { body { padding: 32px 36px; } }
         </style>
@@ -395,9 +396,11 @@ export const generateExpensePrintHTML = (data) => {
                 ` : ''}
             </div>
 
-            <div class="footer">
-                <span>${yourName || 'Your Company'}</span>
-                <span>${reportNumber} · 1/1</span>
+            <div class="bottom-section">
+                <div class="footer">
+                    <span>${yourName || 'Your Company'}</span>
+                    <span>${reportNumber} · 1/1</span>
+                </div>
             </div>
         </div>
         <script>window.onload = () => window.print();</script>

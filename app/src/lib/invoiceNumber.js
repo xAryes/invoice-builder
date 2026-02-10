@@ -1,4 +1,25 @@
 /**
+ * Generate a typed invoice number based on document type prefix.
+ * Scans existing invoices matching the prefix and auto-increments.
+ * E.g. SAL-2026-01, SAL-2026-02, OFF-2026-01
+ */
+export const generateTypedInvoiceNumber = (prefix, existingInvoices = []) => {
+  const year = new Date().getFullYear()
+  const matching = existingInvoices
+    .map(inv => inv.invoice_number || inv.invoiceNumber || '')
+    .filter(num => num.startsWith(`${prefix}-`))
+
+  const sequences = matching.map(num => {
+    const matches = num.match(/(\d+)$/)
+    return matches ? parseInt(matches[1], 10) : 0
+  })
+
+  const maxSeq = sequences.length > 0 ? Math.max(...sequences) : 0
+  const nextSeq = String(maxSeq + 1).padStart(2, '0')
+  return `${prefix}-${year}-${nextSeq}`
+}
+
+/**
  * Generate the next invoice number based on user settings and existing invoices
  */
 export const generateInvoiceNumber = (existingInvoices = []) => {

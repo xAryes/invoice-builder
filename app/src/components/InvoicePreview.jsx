@@ -251,51 +251,53 @@ export const InvoicePreview = ({ data, fullScreen = false }) => {
           )}
         </div>
 
-        {/* Payment Details */}
-        {(beneficiary || iban || bic) && (
-          <div
-            className="p-4 rounded-lg mt-auto"
-            style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-          >
-            <div className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: styles.accentColor }}>
-              Payment Details
+        {/* Payment Details + Footer — pinned to bottom */}
+        <div className="mt-auto">
+          {(beneficiary || iban || bic) && (
+            <div
+              className="p-4 rounded-lg"
+              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+            >
+              <div className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: styles.accentColor }}>
+                Payment Details
+              </div>
+              <div className="space-y-2 text-sm">
+                {beneficiary && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Beneficiary: </span>
+                    <span>{beneficiary}</span>
+                  </div>
+                )}
+                {iban && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>IBAN: </span>
+                    <span className="font-mono">{iban}</span>
+                  </div>
+                )}
+                {bic && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>BIC: </span>
+                    <span className="font-mono">{bic}</span>
+                  </div>
+                )}
+                {intermediaryBic && (
+                  <div>
+                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Intermediary BIC: </span>
+                    <span className="font-mono">{intermediaryBic}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-2 text-sm">
-              {beneficiary && (
-                <div>
-                  <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Beneficiary: </span>
-                  <span>{beneficiary}</span>
-                </div>
-              )}
-              {iban && (
-                <div>
-                  <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>IBAN: </span>
-                  <span className="font-mono">{iban}</span>
-                </div>
-              )}
-              {bic && (
-                <div>
-                  <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>BIC: </span>
-                  <span className="font-mono">{bic}</span>
-                </div>
-              )}
-              {intermediaryBic && (
-                <div>
-                  <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Intermediary BIC: </span>
-                  <span className="font-mono">{intermediaryBic}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Footer */}
-        <div
-          className="flex justify-between items-center pt-3 mt-3 text-xs"
-          style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
-        >
-          <span>{yourName || 'Your Company'}</span>
-          <span>{invoiceNumber} · 1/1</span>
+          {/* Footer — always at page bottom */}
+          <div
+            className="flex justify-between items-center pt-3 mt-3 text-xs"
+            style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
+          >
+            <span>{yourName || 'Your Company'}</span>
+            <span>{invoiceNumber} · 1/1</span>
+          </div>
         </div>
       </div>
     </div>
@@ -366,7 +368,7 @@ export const generatePrintHTML = (data) => {
     <head>
         <title>Invoice ${invoiceNumber}</title>
         <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; font-family: ${styles.fontFamily}; }
+            * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
             html, body { height: 100%; }
             body { padding: 32px 36px; background: ${styles.bodyBg}; color: ${styles.bodyText}; font-size: 13px; line-height: 1.4; }
             @page { size: A4; margin: 0; }
@@ -399,7 +401,8 @@ export const generatePrintHTML = (data) => {
             .totals-final span:last-child { font-family: monospace; }
             .notes { background: ${bgMuted}; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
             .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
-            .payment { background: ${bgMuted}; padding: 16px; border-radius: 8px; margin-top: auto; }
+            .bottom-section { margin-top: auto; }
+            .payment { background: ${bgMuted}; padding: 16px; border-radius: 8px; }
             .payment-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 12px; }
             .payment-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 4px 32px; font-size: 13px; }
             .payment-key { color: ${labelColor}; }
@@ -516,21 +519,23 @@ export const generatePrintHTML = (data) => {
                 ` : ''}
             </div>
 
-            ${(beneficiary || iban || bic) ? `
-            <div class="payment">
-                <div class="payment-label">Payment Details</div>
-                <div style="font-size: 13px; line-height: 1.8;">
-                    ${beneficiary ? `<div><span style="font-weight: 600; color: ${labelColor}">Beneficiary:</span> ${beneficiary}</div>` : ''}
-                    ${iban ? `<div><span style="font-weight: 600; color: ${labelColor}">IBAN:</span> <span style="font-family: monospace;">${iban}</span></div>` : ''}
-                    ${bic ? `<div><span style="font-weight: 600; color: ${labelColor}">BIC:</span> <span style="font-family: monospace;">${bic}</span></div>` : ''}
-                    ${intermediaryBic ? `<div><span style="font-weight: 600; color: ${labelColor}">Intermediary BIC:</span> <span style="font-family: monospace;">${intermediaryBic}</span></div>` : ''}
+            <div class="bottom-section">
+                ${(beneficiary || iban || bic) ? `
+                <div class="payment">
+                    <div class="payment-label">Payment Details</div>
+                    <div style="font-size: 13px; line-height: 1.8;">
+                        ${beneficiary ? `<div><span style="font-weight: 600; color: ${labelColor}">Beneficiary:</span> ${beneficiary}</div>` : ''}
+                        ${iban ? `<div><span style="font-weight: 600; color: ${labelColor}">IBAN:</span> <span style="font-family: monospace;">${iban}</span></div>` : ''}
+                        ${bic ? `<div><span style="font-weight: 600; color: ${labelColor}">BIC:</span> <span style="font-family: monospace;">${bic}</span></div>` : ''}
+                        ${intermediaryBic ? `<div><span style="font-weight: 600; color: ${labelColor}">Intermediary BIC:</span> <span style="font-family: monospace;">${intermediaryBic}</span></div>` : ''}
+                    </div>
                 </div>
-            </div>
-            ` : ''}
+                ` : ''}
 
-            <div class="footer">
-                <span>${yourName || 'Your Company'}</span>
-                <span>${invoiceNumber} · 1/1</span>
+                <div class="footer">
+                    <span>${yourName || 'Your Company'}</span>
+                    <span>${invoiceNumber} · 1/1</span>
+                </div>
             </div>
         </div>
         <script>window.onload = () => window.print();</script>

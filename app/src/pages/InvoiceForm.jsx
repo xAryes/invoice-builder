@@ -4,7 +4,7 @@ import { useInvoices } from '../hooks/useInvoices'
 import { useProfiles } from '../hooks/useProfiles'
 import { exportToPDF } from '../lib/pdfExport'
 import { openEmailClient } from '../lib/emailInvoice'
-import { generateInvoiceNumber, getDefaultCurrency, getDefaultVatRate, calculateDueDate } from '../lib/invoiceNumber'
+import { generateInvoiceNumber, generateTypedInvoiceNumber, getDefaultCurrency, getDefaultVatRate, calculateDueDate } from '../lib/invoiceNumber'
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '../lib/invoiceTemplates'
 import { InvoicePreview, generatePrintHTML } from '../components/InvoicePreview'
 import { SignatureCanvas } from '../components/SignatureCanvas'
@@ -38,10 +38,10 @@ const CURRENCIES = [
 const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', CZK: 'Kč' }
 
 const DOCUMENT_TYPES = [
-  { id: 'salary', label: 'Salary: Staff Costs', suffix: '', category: null },
-  { id: 'office', label: 'Office: IT & Equipment', suffix: '-OFF', category: 'Office' },
-  { id: 'ga', label: 'General & Administrative', suffix: '-GA', category: 'Other' },
-  { id: 'travel', label: 'Travel & Events', suffix: '-TE', category: 'Travel' },
+  { id: 'salary', label: 'Salary', prefix: 'SAL', category: null },
+  { id: 'office', label: 'Office & IT', prefix: 'OFF', category: 'Office' },
+  { id: 'ga', label: 'General & Admin', prefix: 'GA', category: 'Other' },
+  { id: 'travel', label: 'Travel & Events', prefix: 'TE', category: 'Travel' },
 ]
 
 const defaultLineItem = { description: '', comment: '', quantity: 1, price: 0, vat: 0 }
@@ -65,7 +65,7 @@ export const InvoiceForm = () => {
   const pdfRef = useRef(null)
 
   const { invoices, createInvoice, updateInvoice, getInvoice } = useInvoices()
-  const { profiles, clients, saveProfile, saveClient } = useProfiles()
+  const { profiles, clients, lineItems: savedItems, saveProfile, saveClient, saveLineItem } = useProfiles()
 
   const today = new Date().toISOString().split('T')[0]
   const defaultCurrency = getDefaultCurrency()
@@ -168,11 +168,12 @@ export const InvoiceForm = () => {
           template: invoice.template || DEFAULT_TEMPLATE,
           accentColor: invoice.accent_color || invoice.accentColor || '#4d65ff',
         })
-        // Detect doc type from number suffix
+        // Detect doc type from number prefix
         const num = invoice.invoice_number || invoice.invoiceNumber || ''
-        if (num.endsWith('-OFF')) setDocType('office')
-        else if (num.endsWith('-GA')) setDocType('ga')
-        else if (num.endsWith('-TE')) setDocType('travel')
+        if (num.startsWith('SAL-')) setDocType('salary')
+        else if (num.startsWith('OFF-')) setDocType('office')
+        else if (num.startsWith('GA-')) setDocType('ga')
+        else if (num.startsWith('TE-')) setDocType('travel')
         // Show optional sections if they have content
         if (invoice.notes || invoice.signature || invoice.logo || (invoice.expenses && invoice.expenses.length > 0)) {
           setShowOptional(true)
@@ -201,26 +202,42 @@ export const InvoiceForm = () => {
     const newType = isSame ? null : type.id
     setDocType(newType)
     if (!isSame) {
-      setData(prev => {
-        // Strip any existing suffix from the number, then add new one
-        const baseNum = prev.invoiceNumber.replace(/-(OFF|GA|TE)$/, '')
-        return { ...prev, invoiceNumber: baseNum + type.suffix, notes: type.label }
-      })
+      const typedNumber = generateTypedInvoiceNumber(type.prefix, invoices)
+      setData(prev => ({ ...prev, invoiceNumber: typedNumber, notes: type.label }))
     } else {
-      setData(prev => {
-        const baseNum = prev.invoiceNumber.replace(/-(OFF|GA|TE)$/, '')
-        return { ...prev, invoiceNumber: baseNum }
-      })
+      const defaultNumber = generateInvoiceNumber(invoices)
+      setData(prev => ({ ...prev, invoiceNumber: defaultNumber }))
     }
   }
 
   const handleLoadClient = (client) => {
+    const clientVat = client.default_vat != null ? Number(client.default_vat) : null
     setData(prev => ({
       ...prev,
       clientName: client.client_name || client.clientName || '',
       clientAddress: client.client_address || client.clientAddress || '',
       clientEmail: client.client_email || client.clientEmail || '',
       clientTaxId: client.client_tax_id || client.clientTaxId || '',
+      // Apply client's default VAT to all line items if set
+      lineItems: clientVat != null
+        ? prev.lineItems.map(item => ({ ...item, vat: clientVat }))
+        : prev.lineItems,
+    }))
+  }
+
+  // Load a saved line item template
+  const handleLoadSavedItem = (savedId) => {
+    const item = savedItems.find(i => i.id === savedId)
+    if (!item) return
+    setData(prev => ({
+      ...prev,
+      lineItems: [...prev.lineItems, {
+        description: item.description || '',
+        comment: item.comment || '',
+        quantity: item.quantity ?? 1,
+        price: item.price ?? 0,
+        vat: item.vat ?? defaultVat,
+      }],
     }))
   }
 
@@ -518,26 +535,37 @@ export const InvoiceForm = () => {
                   </div>
                 </div>
               ))}
-              <button onClick={addLineItem} className="w-full flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] text-brand-600 dark:text-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-500/5 transition">
-                <Plus className="w-3.5 h-3.5" />
-                Add item
-              </button>
+              <div className="flex items-center">
+                <button onClick={addLineItem} className="flex-1 flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] text-brand-600 dark:text-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-500/5 transition">
+                  <Plus className="w-3.5 h-3.5" />
+                  Add item
+                </button>
+                {savedItems.length > 0 && (
+                  <select
+                    onChange={e => { handleLoadSavedItem(e.target.value); e.target.value = '' }}
+                    defaultValue=""
+                    className="px-2 py-2 text-[12px] text-brand-600 dark:text-brand-400 bg-transparent border-l border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-brand-50/50 dark:hover:bg-brand-500/5 transition outline-none"
+                  >
+                    <option value="" disabled>Load saved...</option>
+                    {savedItems.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.description}{item.price ? ` — ${sym}${Number(item.price).toFixed(2)}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Payment Details */}
           <div className="mb-4">
             <span className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Payment</span>
-            <div className="grid grid-cols-3 gap-3">
-              <F>
-                <input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Beneficiary" className={inputClass} />
-              </F>
-              <F>
-                <input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="IBAN" className={inputClass} />
-              </F>
-              <F>
-                <input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="BIC / SWIFT" className={inputClass} />
-              </F>
+            <div className="grid grid-cols-2 gap-3">
+              <input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Beneficiary" className={inputClass} />
+              <input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="IBAN" className={inputClass} />
+              <input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="BIC / SWIFT" className={inputClass} />
+              <input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Intermediary BIC" className={inputClass} />
             </div>
           </div>
 

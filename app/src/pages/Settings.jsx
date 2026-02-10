@@ -12,6 +12,7 @@ import {
   Pencil,
   X,
   Repeat,
+  Package,
 } from 'lucide-react'
 
 const inputClass = "w-full px-2.5 py-[7px] text-[13px] bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/40 dark:focus:border-brand-500/40 outline-none text-gray-900 dark:text-white transition placeholder:text-gray-300 dark:placeholder:text-gray-600"
@@ -52,7 +53,7 @@ const F = ({ label, children }) => (
 
 export const Settings = () => {
   const toast = useToast()
-  const { profiles, clients, saveProfile, updateProfile, saveClient, updateClient, deleteClient, savedExpenses, saveSavedExpense, deleteSavedExpense } = useProfiles()
+  const { profiles, clients, lineItems: savedItems, saveProfile, updateProfile, saveClient, updateClient, deleteClient, saveLineItem, deleteLineItem, savedExpenses, saveSavedExpense, deleteSavedExpense } = useProfiles()
 
   const [activeTab, setActiveTab] = useState('profile')
 
@@ -77,9 +78,9 @@ export const Settings = () => {
 
   // Client form state
   const [editingClient, setEditingClient] = useState(null) // null = closed, 'new' = adding, clientId = editing
-  const [clientForm, setClientForm] = useState({ name: '', address: '', email: '', taxId: '' })
+  const [clientForm, setClientForm] = useState({ name: '', address: '', email: '', taxId: '', defaultVat: '' })
 
-  const resetClientForm = () => { setClientForm({ name: '', address: '', email: '', taxId: '' }); setEditingClient(null) }
+  const resetClientForm = () => { setClientForm({ name: '', address: '', email: '', taxId: '', defaultVat: '' }); setEditingClient(null) }
   const startAddClient = () => { resetClientForm(); setEditingClient('new') }
   const startEditClient = (client) => {
     setClientForm({
@@ -87,12 +88,13 @@ export const Settings = () => {
       address: client.client_address || client.clientAddress || '',
       email: client.client_email || client.clientEmail || '',
       taxId: client.client_tax_id || client.clientTaxId || '',
+      defaultVat: client.default_vat != null ? String(client.default_vat) : '',
     })
     setEditingClient(client.id)
   }
   const handleSaveClient = () => {
     if (!clientForm.name.trim()) { toast.error('Client name is required'); return }
-    const data = { client_name: clientForm.name, client_address: clientForm.address, client_email: clientForm.email, client_tax_id: clientForm.taxId }
+    const data = { client_name: clientForm.name, client_address: clientForm.address, client_email: clientForm.email, client_tax_id: clientForm.taxId, default_vat: clientForm.defaultVat !== '' ? Number(clientForm.defaultVat) : null }
     if (editingClient === 'new') {
       saveClient(data)
       toast.success('Client added')
@@ -101,6 +103,18 @@ export const Settings = () => {
       toast.success('Client updated')
     }
     resetClientForm()
+  }
+
+  // Saved line item form state
+  const [itemForm, setItemForm] = useState({ description: '', comment: '', quantity: '1', price: '', vat: '' })
+  const [showItemForm, setShowItemForm] = useState(false)
+
+  const handleSaveItem = () => {
+    if (!itemForm.description.trim()) { toast.error('Description is required'); return }
+    saveLineItem({ description: itemForm.description, comment: itemForm.comment, quantity: Number(itemForm.quantity) || 1, price: Number(itemForm.price) || 0, vat: itemForm.vat !== '' ? Number(itemForm.vat) : null })
+    toast.success('Item saved')
+    setItemForm({ description: '', comment: '', quantity: '1', price: '', vat: '' })
+    setShowItemForm(false)
   }
 
   // Saved expense form state
@@ -161,6 +175,7 @@ export const Settings = () => {
   const tabs = [
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'invoicing', label: 'Invoicing', icon: Hash },
+    { id: 'items', label: 'Items', icon: Package },
     { id: 'clients', label: 'Clients', icon: Building },
     { id: 'recurring', label: 'Recurring', icon: Repeat },
     { id: 'branding', label: 'Branding', icon: Palette },
@@ -278,6 +293,65 @@ export const Settings = () => {
               </>
             )}
 
+            {activeTab === 'items' && (
+              <Section title="Saved Line Items" description="Reusable services and items for quick loading into invoices">
+                {showItemForm ? (
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-lg border border-gray-200 dark:border-white/[0.06]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[12px] font-medium text-gray-600 dark:text-gray-300">New Item</span>
+                      <button onClick={() => setShowItemForm(false)} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <div className="space-y-2">
+                      <F label="Description"><input type="text" value={itemForm.description} onChange={e => setItemForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Consulting — Senior Developer" className={inputClass} /></F>
+                      <F label="Details / Context"><input type="text" value={itemForm.comment} onChange={e => setItemForm(p => ({ ...p, comment: e.target.value }))} placeholder="Optional sub-line details" className={inputClass} /></F>
+                      <div className="grid grid-cols-3 gap-2">
+                        <F label="Qty"><input type="number" value={itemForm.quantity} onChange={e => setItemForm(p => ({ ...p, quantity: e.target.value }))} min="0" step="0.5" className={inputClass} /></F>
+                        <F label="Price"><input type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: e.target.value }))} min="0" step="0.01" placeholder="0.00" className={inputClass} /></F>
+                        <F label="VAT %"><input type="number" value={itemForm.vat} onChange={e => setItemForm(p => ({ ...p, vat: e.target.value }))} min="0" max="100" step="0.5" placeholder="Default" className={inputClass} /></F>
+                      </div>
+                      <button onClick={handleSaveItem} className="px-3 py-1.5 text-[13px] font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition">
+                        Save Item
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowItemForm(true)} className="flex items-center gap-1.5 mb-4 text-[13px] text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition">
+                    <Plus className="w-3.5 h-3.5" />
+                    Add item
+                  </button>
+                )}
+
+                {savedItems.length === 0 && !showItemForm ? (
+                  <div className="text-center py-8">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Package className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <p className="text-[13px] text-gray-400 dark:text-gray-500">No saved items yet.</p>
+                    <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-0.5">Save common services to quickly add them to invoices.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {savedItems.map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/[0.02] rounded-lg border border-gray-100 dark:border-white/[0.04] group">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-medium text-gray-900 dark:text-white">{item.description}</p>
+                          {item.comment && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{item.comment}</p>}
+                          <div className="flex items-center gap-3 mt-0.5 text-[12px] text-gray-400 dark:text-gray-500">
+                            <span>Qty: {item.quantity ?? 1}</span>
+                            <span>Price: {Number(item.price || 0).toFixed(2)}</span>
+                            {item.vat != null && <span>VAT: {item.vat}%</span>}
+                          </div>
+                        </div>
+                        <button onClick={() => { deleteLineItem(item.id); toast.success('Item deleted') }} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition">
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
+
             {activeTab === 'clients' && (
               <>
                 <Section title="Saved Clients" description="Clients for quick selection in invoices and expense reports">
@@ -294,7 +368,10 @@ export const Settings = () => {
                           <F label="Email"><input type="email" value={clientForm.email} onChange={e => setClientForm(p => ({ ...p, email: e.target.value }))} placeholder="client@example.com" className={inputClass} /></F>
                         </div>
                         <F label="Address"><textarea value={clientForm.address} onChange={e => setClientForm(p => ({ ...p, address: e.target.value }))} rows={2} placeholder="Street, City, Country" className={`${inputClass} resize-none`} /></F>
-                        <F label="Tax ID"><input type="text" value={clientForm.taxId} onChange={e => setClientForm(p => ({ ...p, taxId: e.target.value }))} placeholder="e.g. FR12345678901" className={inputClass} /></F>
+                        <div className="grid grid-cols-2 gap-2">
+                          <F label="Tax ID"><input type="text" value={clientForm.taxId} onChange={e => setClientForm(p => ({ ...p, taxId: e.target.value }))} placeholder="e.g. FR12345678901" className={inputClass} /></F>
+                          <F label="Default VAT %"><input type="number" value={clientForm.defaultVat} onChange={e => setClientForm(p => ({ ...p, defaultVat: e.target.value }))} min="0" max="100" step="0.5" placeholder="Auto" className={inputClass} /></F>
+                        </div>
                         <button onClick={handleSaveClient} className="px-3 py-1.5 text-[13px] font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition">
                           {editingClient === 'new' ? 'Add Client' : 'Save Changes'}
                         </button>
@@ -326,6 +403,9 @@ export const Settings = () => {
                             )}
                             {(client.client_tax_id || client.clientTaxId) && (
                               <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Tax ID: {client.client_tax_id || client.clientTaxId}</p>
+                            )}
+                            {client.default_vat != null && (
+                              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">VAT: {client.default_vat}%</p>
                             )}
                           </div>
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
