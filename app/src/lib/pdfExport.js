@@ -79,6 +79,16 @@ export const exportToPDFWithAttachments = async (element, attachments = [], file
     await new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
+        // Normalize to JPEG via canvas (same approach as main page — reliable with jsPDF)
+        const cvs = document.createElement('canvas')
+        cvs.width = img.width
+        cvs.height = img.height
+        const ctx = cvs.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, cvs.width, cvs.height)
+        ctx.drawImage(img, 0, 0)
+        const jpegData = cvs.toDataURL('image/jpeg', 0.95)
+
         pdf.addPage()
         // Header
         pdf.setFontSize(10)
@@ -100,12 +110,14 @@ export const exportToPDFWithAttachments = async (element, attachments = [], file
         w *= ratio
         h *= ratio
 
-        // Draw centered
         const x = margin + (maxW - w) / 2
-        pdf.addImage(att.data, 'JPEG', x, topOffset, w, h)
+        pdf.addImage(jpegData, 'JPEG', x, topOffset, w, h)
         resolve()
       }
-      img.onerror = resolve
+      img.onerror = () => {
+        console.warn('Failed to load attachment image:', att.name)
+        resolve()
+      }
       img.src = att.data
     })
   }

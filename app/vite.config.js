@@ -10,6 +10,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-pdfjs': ['pdfjs-dist'],
           'vendor-motion': ['framer-motion'],
           'vendor-router': ['react-router-dom'],
         },

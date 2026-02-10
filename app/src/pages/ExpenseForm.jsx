@@ -60,6 +60,37 @@ const compressImage = (dataUrl, maxWidth = 1200) => new Promise((resolve) => {
   img.src = dataUrl
 })
 
+// Render PDF pages to JPEG images using pdfjs-dist (lazy-loaded)
+const renderPDFToImages = async (dataUrl) => {
+  const pdfjsLib = await import('pdfjs-dist')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).href
+
+  const binary = atob(dataUrl.split(',')[1])
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+  const images = []
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p)
+    const viewport = page.getViewport({ scale: 2 })
+    const canvas = document.createElement('canvas')
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    await page.render({ canvasContext: ctx, viewport }).promise
+    images.push(canvas.toDataURL('image/jpeg', 0.92))
+  }
+
+  return images
+}
+
 const generateReportNumber = (existingInvoices = []) => {
   const latestInv = getLatestInvNumber(existingInvoices)
   return `EXP-${latestInv}`
@@ -247,26 +278,49 @@ export const ExpenseForm = () => {
   const handleAttach = async (expenseIndex, files) => {
     for (const file of files) {
       if (!file.type.startsWith('image/') && file.type !== 'application/pdf') continue
-      const reader = new FileReader()
-      reader.onload = async () => {
-        let dataUrl = reader.result
-        if (file.type.startsWith('image/')) {
-          dataUrl = await compressImage(dataUrl)
+
+      const dataUrl = await new Promise(resolve => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.readAsDataURL(file)
+      })
+
+      if (file.type === 'application/pdf') {
+        // Convert PDF pages to JPEG images
+        try {
+          toast.info('Converting PDF pages...')
+          const images = await renderPDFToImages(dataUrl)
+          setData(prev => ({
+            ...prev,
+            expenses: prev.expenses.map((item, idx) => {
+              if (idx !== expenseIndex) return item
+              const newAtts = images.map((img, pi) => ({
+                name: images.length > 1 ? `${file.name} (p${pi + 1})` : file.name,
+                type: 'image/jpeg',
+                data: img,
+              }))
+              return { ...item, attachments: [...(item.attachments || []), ...newAtts] }
+            })
+          }))
+        } catch (err) {
+          console.error('PDF conversion failed:', err)
+          toast.error('Could not read PDF — try an image instead')
         }
-        // Warn if still large
-        if (dataUrl.length > 2 * 1024 * 1024) {
+      } else {
+        // Image file
+        const compressed = await compressImage(dataUrl)
+        if (compressed.length > 2 * 1024 * 1024) {
           toast.warning('File is large (>2MB) — may slow down saves')
         }
         setData(prev => ({
           ...prev,
           expenses: prev.expenses.map((item, idx) => {
             if (idx !== expenseIndex) return item
-            const attachments = [...(item.attachments || []), { name: file.name, type: file.type, data: dataUrl }]
+            const attachments = [...(item.attachments || []), { name: file.name, type: 'image/jpeg', data: compressed }]
             return { ...item, attachments }
           })
         }))
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -628,7 +682,7 @@ export const ExpenseForm = () => {
         {/* Right: Live Preview (visual only) */}
         <div className="hidden lg:block w-[595px] flex-shrink-0 border-l border-gray-200/60 dark:border-white/5 bg-gray-50 dark:bg-[#0a0a0c]">
           <div className="sticky top-[92px] p-4">
-            <div className="bg-white dark:bg-[#111113] rounded-lg shadow-sm border border-gray-200/40 dark:border-white/5 overflow-hidden" style={{ transform: 'scale(0.54)', transformOrigin: 'top left', width: '185%' }}>
+            <div className="bg-white dark:bg-[#111113] rounded-lg shadow-sm border border-gray-200/40 dark:border-white/5" style={{ transform: 'scale(0.54)', transformOrigin: 'top left', width: '185%' }}>
               <ExpensePreview data={data} />
             </div>
           </div>
@@ -637,7 +691,7 @@ export const ExpenseForm = () => {
         {/* PDF export source (always rendered offscreen, never display:none) */}
         <div className="fixed -left-[9999px] top-0" style={{ width: '210mm' }}>
           <div ref={pdfRef}>
-            <ExpensePreview data={data} />
+            <ExpensePreview data={data} showAttachmentPages={false} />
           </div>
         </div>
       </div>

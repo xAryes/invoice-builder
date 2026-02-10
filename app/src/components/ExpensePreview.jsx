@@ -21,7 +21,7 @@ const formatPeriod = (start, end) => {
   return formatDate(start || end)
 }
 
-export const ExpensePreview = ({ data }) => {
+export const ExpensePreview = ({ data, showAttachmentPages = true }) => {
   const {
     reportNumber = 'EXP-001',
     date,
@@ -59,12 +59,12 @@ export const ExpensePreview = ({ data }) => {
   }, {})
 
   // Collect all image attachments for rendering as extra pages
-  const allAttachments = expenses.flatMap((exp, i) =>
+  const allAttachments = showAttachmentPages ? expenses.flatMap((exp, i) =>
     (exp.attachments || []).filter(a => a.type?.startsWith('image/')).map(a => ({
       ...a,
       expenseDescription: exp.description || `Expense ${i + 1}`,
     }))
-  )
+  ) : []
   const totalPages = 1 + allAttachments.length
 
   return (
