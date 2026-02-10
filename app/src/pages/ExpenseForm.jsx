@@ -85,6 +85,7 @@ export const ExpenseForm = () => {
     beneficiary: '',
     iban: '',
     bic: '',
+    intermediaryBic: '',
     clientName: '',
     clientAddress: '',
     clientEmail: '',
@@ -114,6 +115,7 @@ export const ExpenseForm = () => {
         beneficiary: defaultProfile.beneficiary || '',
         iban: defaultProfile.iban || '',
         bic: defaultProfile.bic || '',
+        intermediaryBic: defaultProfile.intermediary_bic || defaultProfile.intermediaryBic || '',
       }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +152,7 @@ export const ExpenseForm = () => {
           beneficiary: expense.beneficiary || '',
           iban: expense.iban || '',
           bic: expense.bic || '',
+          intermediaryBic: expense.intermediary_bic || expense.intermediaryBic || '',
           clientName: expense.client_name || expense.clientName || '',
           clientAddress: expense.client_address || expense.clientAddress || '',
           clientEmail: expense.client_email || expense.clientEmail || '',
@@ -209,7 +212,16 @@ export const ExpenseForm = () => {
   }
 
   const addExpenseItem = () => setData(prev => ({ ...prev, expenses: [...prev.expenses, { ...defaultExpenseItem, date: today }] }))
-  const loadSavedExpense = (saved) => setData(prev => ({ ...prev, expenses: [...prev.expenses, { date: today, description: saved.description, category: saved.category, amount: saved.amount || 0 }] }))
+  const loadSavedExpense = (saved) => setData(prev => {
+    const newExp = { date: today, description: saved.description, category: saved.category, amount: saved.amount || 0 }
+    const emptyIdx = prev.expenses.findIndex(e => !e.description && (!e.amount || e.amount === 0))
+    if (emptyIdx !== -1) {
+      const updated = [...prev.expenses]
+      updated[emptyIdx] = newExp
+      return { ...prev, expenses: updated }
+    }
+    return { ...prev, expenses: [...prev.expenses, newExp] }
+  })
   const removeExpenseItem = (i) => setData(prev => ({ ...prev, expenses: prev.expenses.filter((_, idx) => idx !== i) }))
   const updateExpenseItem = (i, field, value) => setData(prev => ({ ...prev, expenses: prev.expenses.map((item, idx) => idx === i ? { ...item, [field]: value } : item) }))
 
@@ -223,7 +235,7 @@ export const ExpenseForm = () => {
         report_number: data.reportNumber, date: data.date, period_start: data.periodStart, period_end: data.periodEnd,
         currency: data.currency,
         your_name: data.yourName, your_address: data.yourAddress, your_email: data.yourEmail, your_tax_id: data.yourTaxId,
-        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic,
+        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic,
         client_name: data.clientName, client_address: data.clientAddress, client_email: data.clientEmail, client_tax_id: data.clientTaxId,
         expenses: data.expenses, notes: data.notes, template: data.template, accent_color: data.accentColor,
       }
@@ -454,10 +466,11 @@ export const ExpenseForm = () => {
           {/* Payment */}
           <div className="mb-4">
             <span className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Payment</span>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <F><input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Beneficiary" className={inputClass} /></F>
               <F><input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="IBAN" className={inputClass} /></F>
               <F><input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="BIC / SWIFT" className={inputClass} /></F>
+              <F><input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Intermediary BIC" className={inputClass} /></F>
             </div>
           </div>
 

@@ -219,20 +219,26 @@ export const InvoiceForm = () => {
     }))
   }
 
-  // Load a saved line item template
+  // Load a saved line item template into the first empty row, or append if none empty
   const handleLoadSavedItem = (savedId) => {
     const item = savedItems.find(i => i.id === savedId)
     if (!item) return
-    setData(prev => ({
-      ...prev,
-      lineItems: [...prev.lineItems, {
-        description: item.description || '',
-        comment: item.comment || '',
-        quantity: item.quantity ?? 1,
-        price: item.price ?? 0,
-        vat: item.vat ?? defaultVat,
-      }],
-    }))
+    const newItem = {
+      description: item.description || '',
+      comment: item.comment || '',
+      quantity: item.quantity ?? 1,
+      price: item.price ?? 0,
+      vat: item.vat ?? defaultVat,
+    }
+    setData(prev => {
+      const emptyIdx = prev.lineItems.findIndex(li => !li.description && !li.comment && (!li.price || li.price === 0))
+      if (emptyIdx !== -1) {
+        const updated = [...prev.lineItems]
+        updated[emptyIdx] = newItem
+        return { ...prev, lineItems: updated }
+      }
+      return { ...prev, lineItems: [...prev.lineItems, newItem] }
+    })
   }
 
   // Line items
