@@ -118,6 +118,7 @@ export const ExpenseForm = () => {
   const today = new Date().toISOString().split('T')[0]
   const defaultCurrency = getDefaultCurrency()
   const defaultProfile = profiles.length > 0 ? profiles[0] : null
+  const dp = defaultProfile
 
   const [data, setData] = useState({
     reportNumber: 'EXP-INV-001',
@@ -125,14 +126,16 @@ export const ExpenseForm = () => {
     periodStart: '',
     periodEnd: '',
     currency: defaultCurrency,
-    yourName: '',
-    yourAddress: '',
-    yourEmail: '',
-    yourTaxId: '',
-    beneficiary: '',
-    iban: '',
-    bic: '',
-    intermediaryBic: '',
+    yourName: dp?.your_name || dp?.yourName || '',
+    yourAddress: dp?.your_address || dp?.yourAddress || '',
+    yourEmail: dp?.your_email || dp?.yourEmail || '',
+    yourTaxId: dp?.your_tax_id || dp?.yourTaxId || '',
+    beneficiary: dp?.beneficiary || '',
+    iban: dp?.iban || '',
+    bic: dp?.bic || '',
+    intermediaryBic: dp?.intermediary_bic || dp?.intermediaryBic || '',
+    paymentMethod: 'bank',
+    ethAddress: dp?.eth_address || dp?.ethAddress || '',
     clientName: '',
     clientAddress: '',
     clientEmail: '',
@@ -154,18 +157,22 @@ export const ExpenseForm = () => {
 
   // Auto-load default profile
   useEffect(() => {
-    if (isNew && defaultProfile && !data.yourName) {
-      setData(prev => ({
-        ...prev,
-        yourName: defaultProfile.your_name || defaultProfile.yourName || '',
-        yourAddress: defaultProfile.your_address || defaultProfile.yourAddress || '',
-        yourEmail: defaultProfile.your_email || defaultProfile.yourEmail || '',
-        yourTaxId: defaultProfile.your_tax_id || defaultProfile.yourTaxId || '',
-        beneficiary: defaultProfile.beneficiary || '',
-        iban: defaultProfile.iban || '',
-        bic: defaultProfile.bic || '',
-        intermediaryBic: defaultProfile.intermediary_bic || defaultProfile.intermediaryBic || '',
-      }))
+    if (isNew && defaultProfile) {
+      setData(prev => {
+        if (prev.yourName && prev.yourName !== '') return prev
+        return {
+          ...prev,
+          yourName: defaultProfile.your_name || defaultProfile.yourName || '',
+          yourAddress: defaultProfile.your_address || defaultProfile.yourAddress || '',
+          yourEmail: defaultProfile.your_email || defaultProfile.yourEmail || '',
+          yourTaxId: defaultProfile.your_tax_id || defaultProfile.yourTaxId || '',
+          beneficiary: defaultProfile.beneficiary || '',
+          iban: defaultProfile.iban || '',
+          bic: defaultProfile.bic || '',
+          intermediaryBic: defaultProfile.intermediary_bic || defaultProfile.intermediaryBic || '',
+          ethAddress: defaultProfile.eth_address || defaultProfile.ethAddress || '',
+        }
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultProfile, isNew])
@@ -202,6 +209,8 @@ export const ExpenseForm = () => {
           iban: expense.iban || '',
           bic: expense.bic || '',
           intermediaryBic: expense.intermediary_bic || expense.intermediaryBic || '',
+          paymentMethod: expense.payment_method || expense.paymentMethod || 'bank',
+          ethAddress: expense.eth_address || expense.ethAddress || '',
           clientName: expense.client_name || expense.clientName || '',
           clientAddress: expense.client_address || expense.clientAddress || '',
           clientEmail: expense.client_email || expense.clientEmail || '',
@@ -343,7 +352,7 @@ export const ExpenseForm = () => {
         report_number: data.reportNumber, date: data.date, period_start: data.periodStart, period_end: data.periodEnd,
         currency: data.currency,
         your_name: data.yourName, your_address: data.yourAddress, your_email: data.yourEmail, your_tax_id: data.yourTaxId,
-        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic,
+        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic, payment_method: data.paymentMethod, eth_address: data.ethAddress,
         client_name: data.clientName, client_address: data.clientAddress, client_email: data.clientEmail, client_tax_id: data.clientTaxId,
         expenses: data.expenses, notes: data.notes, template: data.template, accent_color: data.accentColor,
       }
@@ -470,7 +479,7 @@ export const ExpenseForm = () => {
                   <select
                     onChange={e => {
                       const p = profiles.find(p => p.id === e.target.value)
-                      if (p) setData(prev => ({ ...prev, yourName: p.your_name || p.yourName || '', yourAddress: p.your_address || p.yourAddress || '', yourEmail: p.your_email || p.yourEmail || '', yourTaxId: p.your_tax_id || p.yourTaxId || '', beneficiary: p.beneficiary || prev.beneficiary, iban: p.iban || prev.iban, bic: p.bic || prev.bic }))
+                      if (p) setData(prev => ({ ...prev, yourName: p.your_name || p.yourName || '', yourAddress: p.your_address || p.yourAddress || '', yourEmail: p.your_email || p.yourEmail || '', yourTaxId: p.your_tax_id || p.yourTaxId || '', beneficiary: p.beneficiary || prev.beneficiary, iban: p.iban || prev.iban, bic: p.bic || prev.bic, intermediaryBic: p.intermediary_bic || p.intermediaryBic || prev.intermediaryBic, ethAddress: p.eth_address || p.ethAddress || prev.ethAddress }))
                     }}
                     className="text-[11px] text-gray-400 dark:text-gray-500 bg-transparent border-0 p-0 cursor-pointer" defaultValue=""
                   >
@@ -620,15 +629,59 @@ export const ExpenseForm = () => {
             </div>
           </div>
 
-          {/* Payment */}
-          <div className="mb-4">
-            <span className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Payment</span>
-            <div className="grid grid-cols-2 gap-3">
-              <F><input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Beneficiary" className={inputClass} /></F>
-              <F><input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="IBAN" className={inputClass} /></F>
-              <F><input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="BIC / SWIFT" className={inputClass} /></F>
-              <F><input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Intermediary BIC" className={inputClass} /></F>
+          {/* Payment Details */}
+          <div className="mb-4 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-200/60 dark:border-white/[0.06] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-[1.5px]">Payment Details</span>
+              <div className="flex bg-gray-100 dark:bg-white/[0.06] rounded-lg p-0.5">
+                <button
+                  onClick={() => handleChange('paymentMethod', 'bank')}
+                  className={`px-3 py-1 text-[11px] font-medium rounded-md transition ${data.paymentMethod === 'bank' ? 'bg-white dark:bg-white/[0.1] text-brand-600 dark:text-brand-400 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                >
+                  Bank
+                </button>
+                <button
+                  onClick={() => handleChange('paymentMethod', 'crypto')}
+                  className={`px-3 py-1 text-[11px] font-medium rounded-md transition ${data.paymentMethod === 'crypto' ? 'bg-white dark:bg-white/[0.1] text-brand-600 dark:text-brand-400 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                >
+                  Crypto
+                </button>
+              </div>
             </div>
+
+            {data.paymentMethod === 'bank' ? (
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Beneficiary</label>
+                  <input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Account holder name" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">IBAN</label>
+                  <input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="e.g. FR76 1234 5678 9012 3456 7890 123" className={inputClass} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">BIC / SWIFT</label>
+                    <input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="e.g. BNPAFRPP" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Intermediary BIC</label>
+                    <input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Optional" className={inputClass} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">ETH Address (ERC-20)</label>
+                  <input type="text" value={data.ethAddress} onChange={e => handleChange('ethAddress', e.target.value)} placeholder="0x..." className={`${inputClass} font-mono text-[12px]`} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Network</label>
+                  <input type="text" value="Ethereum Mainnet" disabled className={`${inputClass} opacity-60`} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Total */}

@@ -13,6 +13,9 @@ import {
   X,
   Repeat,
   Package,
+  Download,
+  Upload,
+  HardDrive,
 } from 'lucide-react'
 
 const inputClass = "w-full px-2.5 py-[7px] text-[13px] bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-lg focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/40 dark:focus:border-brand-500/40 outline-none text-gray-900 dark:text-white transition placeholder:text-gray-300 dark:placeholder:text-gray-600"
@@ -53,7 +56,7 @@ const F = ({ label, children }) => (
 
 export const Settings = () => {
   const toast = useToast()
-  const { profiles, clients, lineItems: savedItems, saveProfile, updateProfile, saveClient, updateClient, deleteClient, saveLineItem, deleteLineItem, savedExpenses, saveSavedExpense, deleteSavedExpense } = useProfiles()
+  const { profiles, clients, lineItems: savedItems, saveProfile, updateProfile, saveClient, updateClient, deleteClient, saveLineItem, deleteLineItem, savedExpenses, saveSavedExpense, deleteSavedExpense, refreshData } = useProfiles()
 
   const [activeTab, setActiveTab] = useState('profile')
 
@@ -67,6 +70,7 @@ export const Settings = () => {
     iban: myProfile?.iban || '',
     bic: myProfile?.bic || '',
     intermediaryBic: myProfile?.intermediary_bic || myProfile?.intermediaryBic || '',
+    ethAddress: myProfile?.eth_address || myProfile?.ethAddress || '',
   }))
 
   const [defaultCurrency, setDefaultCurrency] = useState(() => localStorage.getItem('default_currency') || 'EUR')
@@ -150,6 +154,7 @@ export const Settings = () => {
       your_email: profileData.yourEmail, your_tax_id: profileData.yourTaxId,
       beneficiary: profileData.beneficiary, iban: profileData.iban,
       bic: profileData.bic, intermediary_bic: profileData.intermediaryBic,
+      eth_address: profileData.ethAddress,
     }
     if (myProfile) { updateProfile(myProfile.id, data) } else { saveProfile(data) }
     toast.success('Profile saved')
@@ -172,6 +177,61 @@ export const Settings = () => {
 
   const updateBranding = (key, value) => setCustomBranding(prev => ({ ...prev, [key]: value }))
 
+  // Data export/import
+  const ALL_KEYS = [
+    'invoice_builder_profiles', 'invoice_builder_clients', 'invoice_builder_line_items',
+    'invoice_builder_saved_expenses', 'invoice_builder_invoices', 'invoice_builder_expenses',
+    'default_currency', 'default_vat_rate', 'default_payment_terms',
+    'invoice_number_format', 'invoice_custom_prefix', 'invoice_starting_number',
+    'custom_branding', 'theme',
+  ]
+
+  const handleExport = () => {
+    const data = {}
+    ALL_KEYS.forEach(key => {
+      const val = localStorage.getItem(key)
+      if (val !== null) data[key] = val
+    })
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `invoice-builder-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Backup exported')
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result)
+          let count = 0
+          Object.entries(data).forEach(([key, val]) => {
+            if (ALL_KEYS.includes(key)) {
+              localStorage.setItem(key, val)
+              count++
+            }
+          })
+          refreshData()
+          toast.success(`Restored ${count} settings — reloading...`)
+          setTimeout(() => window.location.reload(), 800)
+        } catch {
+          toast.error('Invalid backup file')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }
+
   const tabs = [
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'invoicing', label: 'Invoicing', icon: Hash },
@@ -179,6 +239,7 @@ export const Settings = () => {
     { id: 'clients', label: 'Clients', icon: Building },
     { id: 'recurring', label: 'Recurring', icon: Repeat },
     { id: 'branding', label: 'Branding', icon: Palette },
+    { id: 'data', label: 'Data', icon: HardDrive },
   ]
 
   return (
@@ -220,6 +281,9 @@ export const Settings = () => {
                     <F label="IBAN"><input type="text" value={profileData.iban} onChange={e => setProfileData(p => ({ ...p, iban: e.target.value }))} placeholder="e.g. FR76 1234 5678 9012 3456 7890 123" className={inputClass} /></F>
                     <F label="BIC / SWIFT"><input type="text" value={profileData.bic} onChange={e => setProfileData(p => ({ ...p, bic: e.target.value }))} placeholder="e.g. BNPAFRPP" className={inputClass} /></F>
                     <F label="Intermediary BIC"><input type="text" value={profileData.intermediaryBic} onChange={e => setProfileData(p => ({ ...p, intermediaryBic: e.target.value }))} placeholder="Optional" className={inputClass} /></F>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.04]">
+                    <F label="ETH Address (ERC-20)"><input type="text" value={profileData.ethAddress} onChange={e => setProfileData(p => ({ ...p, ethAddress: e.target.value }))} placeholder="0x..." className={`${inputClass} font-mono`} /></F>
                   </div>
                 </Section>
 
@@ -525,6 +589,33 @@ export const Settings = () => {
                 <button onClick={handleSaveBranding} className="px-4 py-2 text-[13px] font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition">
                   Save Branding
                 </button>
+              </>
+            )}
+
+            {activeTab === 'data' && (
+              <>
+                <Section title="Export Backup" description="Download all your data as a JSON file">
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-4">
+                    Exports your profiles, clients, invoices, expenses, saved items, and all settings into a single file.
+                  </p>
+                  <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition">
+                    <Download size={14} />
+                    Export Backup
+                  </button>
+                </Section>
+
+                <Section title="Import Backup" description="Restore data from a previously exported file">
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-2">
+                    This will overwrite your current data with the contents of the backup file.
+                  </p>
+                  <p className="text-[12px] text-amber-600 dark:text-amber-400 mb-4">
+                    The page will reload after import to apply all changes.
+                  </p>
+                  <button onClick={handleImport} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-200 dark:hover:bg-white/[0.1] transition">
+                    <Upload size={14} />
+                    Import Backup
+                  </button>
+                </Section>
               </>
             )}
           </div>

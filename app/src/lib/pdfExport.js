@@ -279,7 +279,10 @@ export const buildExpenseReportPDF = (data) => {
 
   // ── Notes ──
   if (notes) {
-    drawRoundedRect(pdf, ml, y, cw, 18, 2, bgMuted)
+    setFont(pdf, 'normal', 11)
+    const noteLines = pdf.splitTextToSize(notes, cw - 8)
+    const noteH = 5 + 4 + noteLines.length * 4 + 4
+    drawRoundedRect(pdf, ml, y, cw, noteH, 2, bgMuted)
     y += 5
     setFont(pdf, 'bold', 9)
     setColor(pdf, labelColor)
@@ -376,174 +379,163 @@ export const buildInvoicePDF = (data) => {
 
   const styles = getTemplateStyles(template, accentColor)
   const isDark = template === 'dark'
-  const labelColor = isDark ? '#94a3b8' : '#64748b'
-  const nameColor = isDark ? '#e2e8f0' : '#334155'
-  const borderColorHex = isDark ? '#334155' : '#d4d4d4'
-  const bgMuted = isDark ? '#1e293b' : '#f5f5f5'
+  const grayColor = isDark ? '#94a3b8' : '#9ca3af'
+  const nameColor = isDark ? '#e2e8f0' : '#1a1a1a'
+  const bodyColor = isDark ? '#cbd5e1' : '#444444'
+  const accentBlue = isDark ? '#818cf8' : '#4d65ff'
+  const borderColorHex = isDark ? '#334155' : '#e0e0e0'
+  const bgMuted = isDark ? '#1e293b' : '#f5f5f7'
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pw = 210
   const ph = 297
-  const ml = 13
-  const mr = 13
+  const ml = 20
+  const mr = 20
   const cw = pw - ml - mr
 
-  // Page background
   if (isDark) {
     const [br, bg, bb] = hexToRGB(styles.bodyBg)
     pdf.setFillColor(br, bg, bb)
     pdf.rect(0, 0, pw, ph, 'F')
   }
 
-  let y = 14
+  let y = 22
 
-  // ── Title + Logo ──
+  // ── Title ──
   setFont(pdf, 'normal', 28)
-  setColor(pdf, styles.bodyText)
+  setColor(pdf, nameColor)
   pdf.text('Invoice', ml, y + 8)
-
   if (logo) {
-    try { pdf.addImage(logo, 'JPEG', ml + cw - 30, y - 4, 30, 14) } catch { /* logo failed */ }
+    try { pdf.addImage(logo, 'JPEG', ml + cw - 30, y - 2, 30, 14) } catch { /* */ }
   }
-  y += 16
+  y += 18
 
-  // ── Meta block ──
+  // ── Meta ──
   const metaLabelW = 26
-
   const metaRows = [
     ['Invoice no.', invoiceNumber || 'INV-001'],
     ['Issue date', fmtDate(issueDate) || fmtDate(new Date().toISOString().split('T')[0])],
     ['Due date', fmtDate(dueDate) || '\u2014'],
   ]
-
   for (const [label, value] of metaRows) {
-    setFont(pdf, 'bold', 11)
-    setColor(pdf, labelColor)
+    setFont(pdf, 'bold', 10)
+    setColor(pdf, accentBlue)
     pdf.text(label, ml, y)
-    setFont(pdf, 'normal', 11)
-    setColor(pdf, styles.bodyText)
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, nameColor)
     pdf.text(value, ml + metaLabelW, y)
-    y += 5
+    y += 5.5
   }
-  y += 4
+  y += 8
 
   // ── From / To ──
-  const colW = (cw - 10) / 2
-  const fromX = ml
-  const toX = ml + colW + 10
-
+  const toX = ml + cw / 2 + 8
   const drawParty = (x, label, name, address, email, taxId) => {
     let py = y
-    setFont(pdf, 'bold', 9)
-    setColor(pdf, styles.accentColor)
+    setFont(pdf, 'bold', 8)
+    setColor(pdf, accentBlue)
     pdf.text(label.toUpperCase(), x, py)
-    py += 5
-
-    setFont(pdf, 'bold', 12)
+    py += 6
+    setFont(pdf, 'bold', 11.5)
     setColor(pdf, nameColor)
-    pdf.text(name || (label === 'From' ? 'Your Name' : 'Client Name'), x, py)
-    py += 5
-
-    setFont(pdf, 'normal', 10)
-    setColor(pdf, labelColor)
+    pdf.text(name || '', x, py)
+    py += 6
+    setFont(pdf, 'normal', 9.5)
+    setColor(pdf, grayColor)
     if (address) {
-      const lines = address.split('\n')
-      for (const line of lines) {
-        pdf.text(line, x, py)
-        py += 4
+      for (const line of address.split('\n')) {
+        pdf.text(line, x, py); py += 4.5
       }
     }
-    if (email) { pdf.text(email, x, py); py += 4 }
-    if (taxId) { pdf.text(taxId, x, py); py += 4 }
+    if (email) { pdf.text(email, x, py); py += 4.5 }
+    if (taxId) { pdf.text(taxId, x, py); py += 4.5 }
     return py
   }
-
-  const fromEnd = drawParty(fromX, 'From', yourName, yourAddress, yourEmail, yourTaxId)
+  const fromEnd = drawParty(ml, 'From', yourName, yourAddress, yourEmail, yourTaxId)
   const toEnd = drawParty(toX, 'Bill To', clientName, clientAddress, clientEmail, clientTaxId)
-  y = Math.max(fromEnd, toEnd) + 6
+  y = Math.max(fromEnd, toEnd) + 10
 
-  // ── Line Items table ──
+  // ── Items table ──
   const [blr, blg, blb] = hexToRGB(borderColorHex)
   pdf.setDrawColor(blr, blg, blb)
-  pdf.setLineWidth(0.3)
+  pdf.setLineWidth(0.25)
   pdf.line(ml, y, ml + cw, y)
-  y += 5
+  y += 7
 
-  // Column positions: Item(6) | Qty(2) | Rate(2) | Total(2)
   const colItem = ml
-  const colQty = ml + cw * 6 / 12
-  const colRate = ml + cw * 8 / 12
+  const colQty = ml + cw * 0.58
+  const colRate = ml + cw * 0.78
   const colTotal = ml + cw
 
-  setFont(pdf, 'bold', 9)
-  setColor(pdf, labelColor)
+  setFont(pdf, 'bold', 8)
+  setColor(pdf, grayColor)
   pdf.text('ITEM', colItem, y)
   pdf.text('QTY', colQty, y, { align: 'right' })
   pdf.text('RATE', colRate, y, { align: 'right' })
   pdf.text('TOTAL', colTotal, y, { align: 'right' })
   y += 5
-
   pdf.line(ml, y, ml + cw, y)
-  y += 4
+  y += 7
 
-  // Data rows
   const filteredItems = lineItems.filter(item => item.description)
   if (filteredItems.length > 0) {
     for (const item of filteredItems) {
       const lineTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0) * (1 + (Number(item.vat) || 0) / 100)
 
-      setFont(pdf, 'normal', 11)
+      setFont(pdf, 'bold', 10)
       setColor(pdf, nameColor)
       pdf.text(item.description, colItem, y)
 
-      setMonoFont(pdf, 'normal', 10)
-      setColor(pdf, labelColor)
+      setFont(pdf, 'normal', 10)
+      setColor(pdf, grayColor)
       pdf.text(String(Number(item.quantity) || 0), colQty, y, { align: 'right' })
       pdf.text(fmtCurrency(Number(item.price) || 0, currency), colRate, y, { align: 'right' })
 
-      setMonoFont(pdf, 'bold', 11)
-      setColor(pdf, styles.bodyText)
+      setFont(pdf, 'bold', 10)
+      setColor(pdf, nameColor)
       pdf.text(fmtCurrency(lineTotal, currency), colTotal, y, { align: 'right' })
       y += 5
 
-      // Comment sub-line
       if (item.comment) {
-        setFont(pdf, 'normal', 9)
-        setColor(pdf, labelColor)
-        pdf.text(item.comment, colItem, y)
-        y += 4
+        setFont(pdf, 'normal', 8.5)
+        setColor(pdf, grayColor)
+        const maxW = colQty - colItem - 10
+        const lines = pdf.splitTextToSize(item.comment, maxW)
+        for (const line of lines) {
+          pdf.text(line, colItem, y)
+          y += 3.8
+        }
       }
-      y += 1
+      y += 3
     }
   } else {
-    setFont(pdf, 'normal', 11)
-    setColor(pdf, labelColor)
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, grayColor)
     pdf.text('No items', colItem, y)
-    y += 6
+    y += 7
   }
 
-  y += 2
+  pdf.setDrawColor(blr, blg, blb)
+  pdf.setLineWidth(0.25)
+  pdf.line(ml, y, ml + cw, y)
+  y += 10
 
-  // ── Expenses (if any) ──
+  // ── Expenses ──
   const expensesTotal = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   if (expenses.length > 0) {
-    pdf.line(ml, y, ml + cw, y)
-    y += 5
-    setFont(pdf, 'bold', 9)
-    setColor(pdf, labelColor)
+    setFont(pdf, 'bold', 8)
+    setColor(pdf, grayColor)
     pdf.text('EXPENSES', ml, y)
-    y += 5
-
+    y += 6
     for (const expense of expenses) {
-      setFont(pdf, 'normal', 11)
+      setFont(pdf, 'normal', 10)
       setColor(pdf, nameColor)
       pdf.text(expense.description || 'Expense', ml, y)
-      setMonoFont(pdf, 'bold', 11)
-      setColor(pdf, styles.bodyText)
+      setFont(pdf, 'bold', 10)
       pdf.text(fmtCurrency(expense.amount || 0, currency), ml + cw, y, { align: 'right' })
-      y += 5
+      y += 5.5
     }
-    y += 3
+    y += 6
   }
 
   // ── Totals ──
@@ -551,111 +543,122 @@ export const buildInvoicePDF = (data) => {
   const vatAmount = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0) * (Number(item.vat) || 0) / 100, 0)
   const total = subtotal + vatAmount + expensesTotal
 
-  const totalsX = ml + cw - 70
+  const totalsLabelX = ml + cw - 46
+  const totalsValueX = ml + cw
 
-  setFont(pdf, 'normal', 11)
-  setColor(pdf, labelColor)
-  pdf.text('Subtotal', totalsX, y)
-  setMonoFont(pdf, 'normal', 11)
-  pdf.text(fmtCurrency(subtotal, currency), ml + cw, y, { align: 'right' })
-  y += 5
+  setFont(pdf, 'normal', 10)
+  setColor(pdf, grayColor)
+  pdf.text('Subtotal', totalsLabelX, y, { align: 'right' })
+  setFont(pdf, 'normal', 10)
+  setColor(pdf, nameColor)
+  pdf.text(fmtCurrency(subtotal, currency), totalsValueX, y, { align: 'right' })
+  y += 7
 
   if (vatAmount > 0) {
-    setFont(pdf, 'normal', 11)
-    setColor(pdf, labelColor)
-    pdf.text('VAT', totalsX, y)
-    setMonoFont(pdf, 'normal', 11)
-    pdf.text(fmtCurrency(vatAmount, currency), ml + cw, y, { align: 'right' })
-    y += 5
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, grayColor)
+    pdf.text('VAT', totalsLabelX, y, { align: 'right' })
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, nameColor)
+    pdf.text(fmtCurrency(vatAmount, currency), totalsValueX, y, { align: 'right' })
+    y += 7
   }
 
   if (expensesTotal > 0) {
-    setFont(pdf, 'normal', 11)
-    setColor(pdf, labelColor)
-    pdf.text('Expenses', totalsX, y)
-    setMonoFont(pdf, 'normal', 11)
-    pdf.text(fmtCurrency(expensesTotal, currency), ml + cw, y, { align: 'right' })
-    y += 5
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, grayColor)
+    pdf.text('Expenses', totalsLabelX, y, { align: 'right' })
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, nameColor)
+    pdf.text(fmtCurrency(expensesTotal, currency), totalsValueX, y, { align: 'right' })
+    y += 7
   }
 
-  // Total line
-  pdf.line(totalsX, y, ml + cw, y)
-  y += 6
-  setFont(pdf, 'bold', 16)
-  setColor(pdf, styles.accentColor)
-  pdf.text('Total', totalsX, y)
-  setMonoFont(pdf, 'bold', 16)
-  pdf.text(fmtCurrency(total, currency), ml + cw, y, { align: 'right' })
-  y += 8
+  y += 2
+  setFont(pdf, 'bold', 13)
+  setColor(pdf, accentBlue)
+  pdf.text('Total', totalsLabelX, y, { align: 'right' })
+  setFont(pdf, 'bold', 13)
+  pdf.text(fmtCurrency(total, currency), totalsValueX, y, { align: 'right' })
+  y += 10
 
   // ── Notes ──
   if (notes) {
-    drawRoundedRect(pdf, ml, y, cw, 18, 2, bgMuted)
+    setFont(pdf, 'normal', 10)
+    const noteLines = pdf.splitTextToSize(notes, cw - 12)
+    const noteH = 8 + noteLines.length * 4.5 + 5
+    drawRoundedRect(pdf, ml, y, cw, noteH, 3, bgMuted)
+    y += 6
+    setFont(pdf, 'bold', 8)
+    setColor(pdf, grayColor)
+    pdf.text('Note', ml + 6, y)
     y += 5
-    setFont(pdf, 'bold', 9)
-    setColor(pdf, labelColor)
-    pdf.text('Note', ml + 4, y)
-    y += 4
-    setFont(pdf, 'normal', 11)
-    setColor(pdf, styles.bodyText)
-    y = drawWrappedText(pdf, notes, ml + 4, y, cw - 8, 4)
-    y += 5
+    setFont(pdf, 'normal', 10)
+    setColor(pdf, bodyColor)
+    y = drawWrappedText(pdf, notes, ml + 6, y, cw - 12, 4.5)
+    y += 6
   }
 
   // ── Signature ──
   if (signature) {
     setFont(pdf, 'normal', 9)
-    setColor(pdf, labelColor)
+    setColor(pdf, grayColor)
     pdf.text('Authorized Signature', ml, y)
     y += 3
-    try { pdf.addImage(signature, 'PNG', ml, y, 40, 12) } catch { /* sig failed */ }
+    try { pdf.addImage(signature, 'PNG', ml, y, 40, 12) } catch { /* */ }
     y += 14
     pdf.setDrawColor(blr, blg, blb)
     pdf.line(ml, y, ml + 40, y)
     y += 3
   }
 
-  // ── Payment Details (pinned near bottom) ──
-  let bottomY = ph - 12
+  // ── Payment Details (pinned to bottom) ──
+  let bottomY = ph - 16
+
   // Footer
   setFont(pdf, 'normal', 9)
-  setColor(pdf, labelColor)
+  setColor(pdf, grayColor)
   pdf.text(yourName || 'Your Company', ml, bottomY)
   pdf.text(`${invoiceNumber} · 1/1`, ml + cw, bottomY, { align: 'right' })
-  bottomY -= 4
+  bottomY -= 6
   pdf.setDrawColor(blr, blg, blb)
   pdf.setLineWidth(0.2)
   pdf.line(ml, bottomY, ml + cw, bottomY)
-  bottomY -= 3
+  bottomY -= 6
 
   if (beneficiary || iban || bic) {
-    const payH = 4 + (beneficiary ? 5 : 0) + (iban ? 5 : 0) + (bic ? 5 : 0) + (intermediaryBic ? 5 : 0) + 8
-    const payY = bottomY - payH
-    drawRoundedRect(pdf, ml, payY, cw, payH, 2, bgMuted)
-    let pcy = payY + 5
-    setFont(pdf, 'bold', 9)
-    setColor(pdf, styles.accentColor)
-    pdf.text('PAYMENT DETAILS', ml + 4, pcy)
-    pcy += 6
+    let payRows = 0
+    if (beneficiary) payRows++
+    if (iban) payRows++
+    if (bic) payRows++
+    if (intermediaryBic) payRows++
+    const payH = 10 + payRows * 6.5 + 4
 
-    const drawPayRow = (label, value, mono) => {
-      setFont(pdf, 'bold', 10)
-      setColor(pdf, labelColor)
-      pdf.text(label + ':', ml + 4, pcy)
-      if (mono) {
-        setMonoFont(pdf, 'normal', 10)
-      } else {
-        setFont(pdf, 'normal', 10)
-      }
-      setColor(pdf, styles.bodyText)
-      pdf.text(value, ml + 38, pcy)
-      pcy += 5
+    const payY = bottomY - payH
+    drawRoundedRect(pdf, ml, payY, cw, payH, 3, bgMuted)
+
+    let pcy = payY + 8
+    setFont(pdf, 'bold', 8)
+    setColor(pdf, accentBlue)
+    pdf.text('PAYMENT DETAILS', ml + 8, pcy)
+    pcy += 8
+
+    const drawPayRow = (label, value) => {
+      setFont(pdf, 'bold', 9.5)
+      setColor(pdf, accentBlue)
+      const labelText = label + ':'
+      pdf.text(labelText, ml + 8, pcy)
+      const labelW = pdf.getTextWidth(labelText)
+      setFont(pdf, 'normal', 9.5)
+      setColor(pdf, nameColor)
+      pdf.text(' ' + value, ml + 8 + labelW, pcy)
+      pcy += 6.5
     }
 
-    if (beneficiary) drawPayRow('Beneficiary', beneficiary, false)
-    if (iban) drawPayRow('IBAN', iban, true)
-    if (bic) drawPayRow('BIC', bic, true)
-    if (intermediaryBic) drawPayRow('Intermediary BIC', intermediaryBic, true)
+    if (beneficiary) drawPayRow('Beneficiary', beneficiary)
+    if (iban) drawPayRow('IBAN', iban)
+    if (bic) drawPayRow('BIC', bic)
+    if (intermediaryBic) drawPayRow('Intermediary BIC', intermediaryBic)
   }
 
   return pdf
@@ -725,8 +728,52 @@ export const exportExpenseReportPDF = async (data, filename = 'expense-report.pd
 }
 
 export const exportInvoicePDF = async (data, filename = 'invoice.pdf') => {
-  const pdf = buildInvoicePDF(data)
-  pdf.save(filename)
+  const { generatePrintHTML } = await import('../components/InvoicePreview')
+  const html2canvas = (await import('html2canvas')).default
+
+  // Create offscreen container in the main document
+  const container = document.createElement('div')
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;overflow:hidden;z-index:-1;'
+  document.body.appendChild(container)
+
+  // Extract just the body content and styles from the HTML template
+  const html = generatePrintHTML(data)
+  const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/)
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<script>/)
+
+  if (styleMatch && bodyMatch) {
+    const style = document.createElement('style')
+    style.textContent = styleMatch[1]
+    container.appendChild(style)
+
+    const content = document.createElement('div')
+    content.style.cssText = 'padding:36px 40px;width:794px;height:1123px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;font-size:13px;line-height:1.4;color:#1a1a1a;'
+    content.innerHTML = bodyMatch[1]
+    container.appendChild(content)
+  }
+
+  // Wait for fonts to load
+  await new Promise(r => setTimeout(r, 400))
+
+  try {
+    const target = container.querySelector('.container') || container.lastElementChild || container
+    const canvas = await html2canvas(target, {
+      scale: 2,
+      useCORS: true,
+      width: 794,
+      height: 1123,
+      backgroundColor: '#ffffff',
+      windowWidth: 794,
+      windowHeight: 1123,
+    })
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95)
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
+    pdf.save(filename)
+  } finally {
+    document.body.removeChild(container)
+  }
 }
 
 // Legacy export names for backward compatibility

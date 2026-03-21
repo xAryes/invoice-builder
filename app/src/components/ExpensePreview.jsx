@@ -37,6 +37,8 @@ export const ExpensePreview = ({ data }) => {
     iban,
     bic,
     intermediaryBic,
+    ethAddress,
+    paymentMethod = 'bank',
     clientName,
     clientAddress,
     clientEmail,
@@ -47,18 +49,21 @@ export const ExpensePreview = ({ data }) => {
   } = data
 
   const styles = getTemplateStyles(template, accentColor)
-  const isDark = template === 'midnight' || template === 'charcoal'
+  const isDark = template === 'dark'
+  const accent = styles.accentColor
+  const gray = isDark ? '#94a3b8' : '#9ca3af'
+  const dark = isDark ? '#e2e8f0' : '#1a1a1a'
+  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const muted = isDark ? 'rgba(255,255,255,0.03)' : '#f3f4f6'
 
   const total = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0)
 
-  // Group by category
   const byCategory = expenses.reduce((acc, exp) => {
     const cat = exp.category || 'Other'
     acc[cat] = (acc[cat] || 0) + (Number(exp.amount) || 0)
     return acc
   }, {})
 
-  // Collect all image attachments for rendering as extra pages in the preview
   const allAttachments = expenses.flatMap((exp, i) =>
     (exp.attachments || []).filter(a => a.type?.startsWith('image/')).map(a => ({
       ...a,
@@ -71,47 +76,43 @@ export const ExpensePreview = ({ data }) => {
     <div>
     <div
       style={{
-        padding: '32px 36px',
+        padding: '36px 40px',
         height: '297mm',
         minHeight: '297mm',
         position: 'relative',
         backgroundColor: styles.bodyBg,
-        color: styles.bodyText,
+        color: dark,
         fontFamily: styles.fontFamily,
+        fontSize: '13px',
+        lineHeight: '1.4',
       }}
     >
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-light tracking-tight mb-4" style={{ color: styles.bodyText }}>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 300, letterSpacing: '-0.5px', color: dark, marginBottom: '16px' }}>
             Expense Report
           </h1>
-          <div className="text-sm space-y-0.5">
-            <div className="flex">
-              <span className="w-28 font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Report no.</span>
-              <span>{reportNumber}</span>
-            </div>
-            <div className="flex">
-              <span className="w-28 font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Date</span>
-              <span>{formatDate(date) || formatDate(new Date().toISOString().split('T')[0])}</span>
-            </div>
-            {(periodStart || periodEnd) && (
-              <div className="flex">
-                <span className="w-28 font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Period</span>
-                <span>{formatPeriod(periodStart, periodEnd)}</span>
+          <div style={{ fontSize: '13px' }}>
+            {[
+              ['Report no.', reportNumber],
+              ['Date', formatDate(date) || formatDate(new Date().toISOString().split('T')[0])],
+              ...(periodStart || periodEnd ? [['Period', formatPeriod(periodStart, periodEnd)]] : []),
+            ].map(([label, value]) => (
+              <div key={label} className="flex" style={{ marginBottom: '3px' }}>
+                <span style={{ width: '100px', fontWeight: 600, color: accent }}>{label}</span>
+                <span style={{ color: dark }}>{value}</span>
               </div>
-            )}
+            ))}
           </div>
         </div>
 
         {/* From / To */}
-        <div className="grid grid-cols-2 gap-8 mb-6">
+        <div className="grid grid-cols-2 gap-8" style={{ marginBottom: '28px' }}>
           <div>
-            <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: styles.accentColor }}>
-              From
-            </div>
-            <div className="text-sm font-semibold mb-1">{yourName || 'Your Name'}</div>
-            <div className="text-xs leading-relaxed" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: accent, marginBottom: '8px' }}>From</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: dark, marginBottom: '4px' }}>{yourName || 'Your Name'}</div>
+            <div style={{ fontSize: '12px', color: gray, lineHeight: '1.6' }}>
               {yourAddress && <div className="whitespace-pre-line">{yourAddress}</div>}
               {yourEmail && <div>{yourEmail}</div>}
               {yourTaxId && <div>{yourTaxId}</div>}
@@ -119,11 +120,9 @@ export const ExpensePreview = ({ data }) => {
           </div>
           {clientName && (
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: styles.accentColor }}>
-                Bill To
-              </div>
-              <div className="text-sm font-semibold mb-1">{clientName}</div>
-              <div className="text-xs leading-relaxed" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: accent, marginBottom: '8px' }}>Bill To</div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: dark, marginBottom: '4px' }}>{clientName}</div>
+              <div style={{ fontSize: '12px', color: gray, lineHeight: '1.6' }}>
                 {clientAddress && <div className="whitespace-pre-line">{clientAddress}</div>}
                 {clientEmail && <div>{clientEmail}</div>}
                 {clientTaxId && <div>{clientTaxId}</div>}
@@ -134,14 +133,8 @@ export const ExpensePreview = ({ data }) => {
 
         {/* Expenses table */}
         <div>
-          <div
-            className="border-t border-b py-3 mb-4"
-            style={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
-          >
-            <div
-              className="grid grid-cols-12 gap-2 text-xs font-bold uppercase tracking-widest mb-3"
-              style={{ color: isDark ? '#64748b' : '#94a3b8' }}
-            >
+          <div style={{ borderTop: `1px solid ${border}`, borderBottom: `1px solid ${border}`, padding: '14px 0', marginBottom: '20px' }}>
+            <div className="grid grid-cols-12 gap-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: gray, marginBottom: '14px' }}>
               <div className="col-span-2">Date</div>
               <div className="col-span-5">Description</div>
               <div className="col-span-3">Category</div>
@@ -149,111 +142,75 @@ export const ExpensePreview = ({ data }) => {
             </div>
             {expenses.filter(e => e.description || e.amount).length > 0 ? (
               expenses.filter(e => e.description || e.amount).map((exp, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 py-2 text-sm">
-                  <div className="col-span-2 font-mono text-xs" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                    {formatDate(exp.date)}
-                  </div>
-                  <div className="col-span-5">
-                    <div className="font-medium" style={{ color: isDark ? '#e2e8f0' : '#334155' }}>
-                      {exp.description}
-                    </div>
-                  </div>
-                  <div className="col-span-3 text-xs" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                    {exp.category || 'Other'}
-                  </div>
-                  <div className="col-span-2 text-right font-semibold font-mono">
-                    {formatCurrency(exp.amount, currency)}
-                  </div>
+                <div key={i} className="grid grid-cols-12 gap-2" style={{ padding: '8px 0', fontSize: '13px' }}>
+                  <div className="col-span-2" style={{ fontSize: '12px', color: gray }}>{formatDate(exp.date)}</div>
+                  <div className="col-span-5" style={{ fontWeight: 600, color: dark }}>{exp.description}</div>
+                  <div className="col-span-3" style={{ fontSize: '12px', color: gray }}>{exp.category || 'Other'}</div>
+                  <div className="col-span-2 text-right" style={{ fontWeight: 700, color: dark }}>{formatCurrency(exp.amount, currency)}</div>
                 </div>
               ))
             ) : (
-              <div className="py-2 text-sm" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>
-                No expenses
-              </div>
+              <div style={{ padding: '8px 0', fontSize: '13px', color: gray }}>No expenses</div>
             )}
           </div>
 
           {/* Category summary */}
           {Object.keys(byCategory).length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>
-                By Category
-              </div>
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: gray, marginBottom: '8px' }}>By Category</div>
               {Object.entries(byCategory).map(([cat, amt]) => (
-                <div key={cat} className="flex justify-between py-1 text-sm">
-                  <span style={{ color: isDark ? '#e2e8f0' : '#334155' }}>{cat}</span>
-                  <span className="font-mono" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{formatCurrency(amt, currency)}</span>
+                <div key={cat} className="flex justify-between" style={{ padding: '4px 0', fontSize: '13px' }}>
+                  <span style={{ color: dark }}>{cat}</span>
+                  <span style={{ color: gray }}>{formatCurrency(amt, currency)}</span>
                 </div>
               ))}
             </div>
           )}
 
           {/* Total */}
-          <div className="flex justify-end mb-4">
-            <div
-              className="flex justify-between gap-12 text-lg font-bold pt-2 border-t"
-              style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', color: styles.accentColor }}
-            >
+          <div className="flex justify-end" style={{ marginBottom: '20px' }}>
+            <div className="flex justify-between" style={{ gap: '48px', fontSize: '18px', fontWeight: 700, color: accent, paddingTop: '10px' }}>
               <span>Total</span>
-              <span className="font-mono">{formatCurrency(total, currency)}</span>
+              <span>{formatCurrency(total, currency)}</span>
             </div>
           </div>
 
           {/* Notes */}
           {notes && (
-            <div
-              className="mb-4 p-3 rounded-lg text-sm"
-              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-            >
-              <div className="text-xs font-semibold mb-1" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>Note</div>
-              <div className="whitespace-pre-line">{notes}</div>
+            <div style={{ backgroundColor: muted, padding: '14px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: gray, marginBottom: '5px' }}>Note</div>
+              <div className="whitespace-pre-line" style={{ color: dark }}>{notes}</div>
             </div>
           )}
         </div>
 
-        {/* Payment Details + Footer — pinned to bottom */}
-        <div style={{ position: 'absolute', bottom: '32px', left: '36px', right: '36px' }}>
-          {(beneficiary || iban || bic) && (
-            <div
-              className="p-4 rounded-lg"
-              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-            >
-              <div className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: styles.accentColor }}>
+        {/* Payment Details + Footer — pushed to bottom */}
+        <div style={{ marginTop: 'auto' }}>
+          {((paymentMethod === 'bank' && (beneficiary || iban || bic || intermediaryBic)) || (paymentMethod === 'crypto' && ethAddress)) && (
+            <div style={{ backgroundColor: muted, padding: '18px 20px', borderRadius: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: accent, marginBottom: '14px' }}>
                 Payment Details
               </div>
-              <div className="space-y-2 text-sm">
-                {beneficiary && (
-                  <div>
-                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Beneficiary: </span>
-                    <span>{beneficiary}</span>
-                  </div>
+              <div style={{ fontSize: '13px', lineHeight: '2' }}>
+                {paymentMethod === 'bank' && (
+                  <>
+                    {beneficiary && <div><span style={{ fontWeight: 600, color: accent }}>Beneficiary:</span> {beneficiary}</div>}
+                    {iban && <div><span style={{ fontWeight: 600, color: accent }}>IBAN:</span> {iban}</div>}
+                    {bic && <div><span style={{ fontWeight: 600, color: accent }}>BIC:</span> {bic}</div>}
+                    {intermediaryBic && <div><span style={{ fontWeight: 600, color: accent }}>Intermediary BIC:</span> {intermediaryBic}</div>}
+                  </>
                 )}
-                {iban && (
-                  <div>
-                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>IBAN: </span>
-                    <span className="font-mono">{iban}</span>
-                  </div>
-                )}
-                {bic && (
-                  <div>
-                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>BIC: </span>
-                    <span className="font-mono">{bic}</span>
-                  </div>
-                )}
-                {intermediaryBic && (
-                  <div>
-                    <span className="font-semibold" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>Intermediary BIC: </span>
-                    <span className="font-mono">{intermediaryBic}</span>
-                  </div>
+                {paymentMethod === 'crypto' && ethAddress && (
+                  <>
+                    <div><span style={{ fontWeight: 600, color: accent }}>Network:</span> Ethereum (ERC-20)</div>
+                    <div><span style={{ fontWeight: 600, color: accent }}>Address:</span> <span style={{ fontSize: '11px' }}>{ethAddress}</span></div>
+                  </>
                 )}
               </div>
             </div>
           )}
 
-          <div
-            className="flex justify-between items-center pt-3 mt-3 text-xs"
-            style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#64748b' : '#94a3b8' }}
-          >
+          <div className="flex justify-between items-center" style={{ paddingTop: '14px', marginTop: '14px', borderTop: `1px solid ${border}`, fontSize: '11px', color: gray }}>
             <span>{yourName || 'Your Company'}</span>
             <span>{reportNumber} · 1/{totalPages}</span>
           </div>
@@ -266,26 +223,26 @@ export const ExpensePreview = ({ data }) => {
       <div
         key={i}
         style={{
-          padding: '32px 36px',
+          padding: '36px 40px',
           height: '297mm',
           minHeight: '297mm',
           position: 'relative',
           backgroundColor: styles.bodyBg,
-          color: styles.bodyText,
+          color: dark,
           fontFamily: styles.fontFamily,
         }}
       >
-        <div style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+        <div style={{ color: gray, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
           Attachment
         </div>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: styles.bodyText, marginBottom: '16px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: dark, marginBottom: '16px' }}>
           {att.name}
-          <span style={{ color: isDark ? '#64748b' : '#94a3b8', fontWeight: 400, marginLeft: '8px' }}>— {att.expenseDescription}</span>
+          <span style={{ color: gray, fontWeight: 400, marginLeft: '8px' }}>— {att.expenseDescription}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1 }}>
           <img src={att.data} alt={att.name} style={{ maxWidth: '100%', maxHeight: '240mm', objectFit: 'contain', borderRadius: '4px' }} />
         </div>
-        <div style={{ position: 'absolute', bottom: '32px', left: '36px', right: '36px', display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, paddingTop: '12px', fontSize: '11px', color: isDark ? '#64748b' : '#94a3b8' }}>
+        <div style={{ position: 'absolute', bottom: '36px', left: '40px', right: '40px', display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${border}`, paddingTop: '14px', fontSize: '11px', color: gray }}>
           <span>{yourName || 'Your Company'}</span>
           <span>{reportNumber} · {i + 2}/{totalPages}</span>
         </div>
@@ -311,6 +268,8 @@ export const generateExpensePrintHTML = (data) => {
     iban,
     bic,
     intermediaryBic,
+    ethAddress,
+    paymentMethod = 'bank',
     clientName,
     clientAddress,
     clientEmail,
@@ -321,10 +280,10 @@ export const generateExpensePrintHTML = (data) => {
   } = data
 
   const styles = getTemplateStyles(template, accentColor)
-  const isDark = template === 'midnight' || template === 'charcoal'
+  const isDark = template === 'dark'
 
   const formatCurr = (amount) => {
-    const symbols = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$' }
+    const symbols = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr.', CAD: 'C$', AUD: 'A$', JPY: '¥', CNY: '¥', INR: '₹', BRL: 'R$', MXN: 'MX$', SEK: 'kr ', NOK: 'kr ', DKK: 'kr ', PLN: 'zł', CZK: 'Kč' }
     return `${symbols[currency] || currency + ' '}${Number(amount || 0).toFixed(2)}`
   }
 
@@ -340,9 +299,11 @@ export const generateExpensePrintHTML = (data) => {
 
   const total = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0)
 
-  const labelColor = isDark ? '#94a3b8' : '#64748b'
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-  const bgMuted = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+  const accent = styles.accentColor
+  const gray = isDark ? '#94a3b8' : '#9ca3af'
+  const dark = isDark ? '#e2e8f0' : '#1a1a1a'
+  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const muted = isDark ? 'rgba(255,255,255,0.03)' : '#f3f4f6'
 
   const printAttachments = expenses.flatMap((exp, i) =>
     (exp.attachments || []).filter(a => a.type?.startsWith('image/')).map(a => ({
@@ -352,142 +313,163 @@ export const generateExpensePrintHTML = (data) => {
   )
   const printTotalPages = 1 + printAttachments.length
 
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Expense Report ${reportNumber}</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
-            html, body { height: 100%; }
-            body { padding: 32px 36px; background: ${styles.bodyBg}; color: ${styles.bodyText}; font-size: 13px; line-height: 1.4; }
-            @page { size: A4; margin: 0; }
-            .container { height: 100%; position: relative; }
-            .title { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 16px; }
-            .meta-row { display: flex; margin-bottom: 2px; font-size: 13px; }
-            .meta-label { width: 100px; font-weight: 600; color: ${labelColor}; }
-            .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 24px 0; }
-            .party-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 8px; }
-            .party-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-            .party-detail { font-size: 12px; color: ${labelColor}; line-height: 1.5; }
-            .items { }
-            .items-table { border-top: 1px solid ${borderColor}; border-bottom: 1px solid ${borderColor}; padding: 12px 0; margin-bottom: 16px; }
-            .items-header { display: grid; grid-template-columns: 2fr 5fr 3fr 2fr; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${labelColor}; margin-bottom: 12px; }
-            .items-header > div:last-child { text-align: right; }
-            .item-row { display: grid; grid-template-columns: 2fr 5fr 3fr 2fr; gap: 8px; padding: 6px 0; font-size: 13px; }
-            .item-row > div:last-child { text-align: right; font-family: monospace; font-weight: 600; }
-            .totals-final { display: flex; justify-content: flex-end; gap: 48px; font-size: 18px; font-weight: 700; color: ${styles.accentColor}; padding-top: 8px; border-top: 1px solid ${borderColor}; margin-bottom: 16px; }
-            .totals-final span:last-child { font-family: monospace; }
-            .payment { margin-bottom: 16px; }
-            .payment-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${styles.accentColor}; margin-bottom: 8px; }
-            .payment-detail { font-size: 13px; color: ${labelColor}; line-height: 1.8; }
-            .notes { background: ${bgMuted}; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
-            .notes-label { font-size: 11px; font-weight: 600; color: ${labelColor}; margin-bottom: 4px; }
-            .bottom-section { position: absolute; bottom: 0; left: 0; right: 0; }
-            .footer { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 1px solid ${borderColor}; font-size: 11px; color: ${labelColor}; }
-            .att-page { page-break-before: always; }
-            @media print { body { padding: 32px 36px; } }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="title">Expense Report</div>
+  const hasPayment = (paymentMethod === 'bank' && (beneficiary || iban || bic || intermediaryBic)) || (paymentMethod === 'crypto' && ethAddress)
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Report ${reportNumber}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
+        html, body { height: 100%; }
+        body { padding: 36px 40px; background: ${styles.bodyBg}; color: ${dark}; font-size: 13px; line-height: 1.4; }
+        @page { size: A4; margin: 0; }
+        .container { min-height: 1051px; display: flex; flex-direction: column; }
+
+        .title { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; color: ${dark}; margin-bottom: 16px; }
+        .meta-row { display: flex; margin-bottom: 3px; font-size: 13px; }
+        .meta-label { width: 100px; font-weight: 600; color: ${accent}; }
+
+        .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 28px 0; }
+        .party-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${accent}; margin-bottom: 8px; }
+        .party-name { font-size: 14px; font-weight: 600; color: ${dark}; margin-bottom: 4px; }
+        .party-detail { font-size: 12px; color: ${gray}; line-height: 1.6; }
+
+        .items-table { border-top: 1px solid ${border}; border-bottom: 1px solid ${border}; padding: 14px 0; margin-bottom: 20px; }
+        .items-header { display: grid; grid-template-columns: 2fr 5fr 3fr 2fr; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${gray}; margin-bottom: 14px; }
+        .items-header > div:last-child { text-align: right; }
+
+        .item-row { display: grid; grid-template-columns: 2fr 5fr 3fr 2fr; gap: 8px; padding: 8px 0; font-size: 13px; }
+        .item-date { font-size: 12px; color: ${gray}; }
+        .item-desc { font-weight: 600; color: ${dark}; }
+        .item-cat { font-size: 12px; color: ${gray}; }
+        .item-amt { text-align: right; font-weight: 700; color: ${dark}; }
+
+        .cat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${gray}; margin-bottom: 8px; }
+        .cat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+        .cat-name { color: ${dark}; }
+        .cat-amt { color: ${gray}; }
+
+        .totals-final { display: flex; justify-content: flex-end; gap: 48px; font-size: 18px; font-weight: 700; color: ${accent}; padding-top: 10px; margin-bottom: 20px; }
+
+        .notes { background: ${muted}; padding: 14px 16px; border-radius: 8px; margin-bottom: 16px; }
+        .notes-label { font-size: 11px; font-weight: 600; color: ${gray}; margin-bottom: 5px; }
+
+        .bottom-section { margin-top: auto; }
+        .payment { background: ${muted}; padding: 18px 20px; border-radius: 10px; }
+        .payment-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${accent}; margin-bottom: 14px; }
+        .payment-rows { font-size: 13px; line-height: 2; }
+        .payment-rows .label { font-weight: 600; color: ${accent}; }
+
+        .footer { display: flex; justify-content: space-between; padding-top: 14px; margin-top: 14px; border-top: 1px solid ${border}; font-size: 11px; color: ${gray}; }
+
+        @media print { body { padding: 36px 40px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Expense Report</div>
+        <div>
+            <div class="meta-row"><span class="meta-label">Report no.</span><span>${reportNumber}</span></div>
+            <div class="meta-row"><span class="meta-label">Date</span><span>${fmtDate(date) || fmtDate(new Date().toISOString().split('T')[0])}</span></div>
+            ${periodStart || periodEnd ? `<div class="meta-row"><span class="meta-label">Period</span><span>${fmtDate(periodStart)} - ${fmtDate(periodEnd)}</span></div>` : ''}
+        </div>
+
+        <div class="parties">
             <div>
-                <div class="meta-row"><span class="meta-label">Report no.</span><span>${reportNumber}</span></div>
-                <div class="meta-row"><span class="meta-label">Date</span><span>${fmtDate(date) || fmtDate(new Date().toISOString().split('T')[0])}</span></div>
-                ${periodStart || periodEnd ? `<div class="meta-row"><span class="meta-label">Period</span><span>${fmtDate(periodStart)} - ${fmtDate(periodEnd)}</span></div>` : ''}
-            </div>
-
-            <div class="parties">
-                <div>
-                    <div class="party-label">From</div>
-                    <div class="party-name">${yourName || 'Your Name'}</div>
-                    <div class="party-detail">
-                        ${yourAddress ? yourAddress.replace(/\n/g, '<br>') : ''}
-                        ${yourEmail ? `<br>${yourEmail}` : ''}
-                        ${yourTaxId ? `<br>${yourTaxId}` : ''}
-                    </div>
-                </div>
-                ${clientName ? `
-                <div>
-                    <div class="party-label">Bill To</div>
-                    <div class="party-name">${clientName}</div>
-                    <div class="party-detail">
-                        ${clientAddress ? clientAddress.replace(/\n/g, '<br>') : ''}
-                        ${clientEmail ? `<br>${clientEmail}` : ''}
-                        ${clientTaxId ? `<br>${clientTaxId}` : ''}
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-
-            <div class="items">
-                <div class="items-table">
-                    <div class="items-header">
-                        <div>Date</div>
-                        <div>Description</div>
-                        <div>Category</div>
-                        <div>Amount</div>
-                    </div>
-                    ${expenses.filter(e => e.description || e.amount).map(exp => `
-                        <div class="item-row">
-                            <div style="font-family: monospace; font-size: 12px; color: ${labelColor}">${fmtDate(exp.date)}</div>
-                            <div style="font-weight: 500">${exp.description || ''}</div>
-                            <div style="font-size: 12px; color: ${labelColor}">${exp.category || 'Other'}</div>
-                            <div>${formatCurr(exp.amount)}</div>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <div class="totals-final"><span>Total</span><span>${formatCurr(total)}</span></div>
-
-                ${notes ? `
-                <div class="notes">
-                    <div class="notes-label">Note</div>
-                    <div style="white-space: pre-line;">${notes}</div>
-                </div>
-                ` : ''}
-            </div>
-
-            <div class="bottom-section">
-                ${(beneficiary || iban || bic) ? `
-                <div class="payment" style="background: ${bgMuted}; padding: 16px; border-radius: 8px;">
-                    <div class="payment-label">Payment Details</div>
-                    <div style="font-size: 13px; line-height: 1.8;">
-                        ${beneficiary ? `<div><span style="font-weight: 600; color: ${labelColor}">Beneficiary:</span> ${beneficiary}</div>` : ''}
-                        ${iban ? `<div><span style="font-weight: 600; color: ${labelColor}">IBAN:</span> <span style="font-family: monospace;">${iban}</span></div>` : ''}
-                        ${bic ? `<div><span style="font-weight: 600; color: ${labelColor}">BIC:</span> <span style="font-family: monospace;">${bic}</span></div>` : ''}
-                        ${intermediaryBic ? `<div><span style="font-weight: 600; color: ${labelColor}">Intermediary BIC:</span> <span style="font-family: monospace;">${intermediaryBic}</span></div>` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
-                <div class="footer">
-                    <span>${yourName || 'Your Company'}</span>
-                    <span>${reportNumber} · 1/${printTotalPages}</span>
+                <div class="party-label">From</div>
+                <div class="party-name">${yourName || 'Your Name'}</div>
+                <div class="party-detail">
+                    ${yourAddress ? yourAddress.replace(/\n/g, '<br>') : ''}
+                    ${yourEmail ? `<br>${yourEmail}` : ''}
+                    ${yourTaxId ? `<br>${yourTaxId}` : ''}
                 </div>
             </div>
+            ${clientName ? `
+            <div>
+                <div class="party-label">Bill To</div>
+                <div class="party-name">${clientName}</div>
+                <div class="party-detail">
+                    ${clientAddress ? clientAddress.replace(/\n/g, '<br>') : ''}
+                    ${clientEmail ? `<br>${clientEmail}` : ''}
+                    ${clientTaxId ? `<br>${clientTaxId}` : ''}
+                </div>
+            </div>
+            ` : ''}
         </div>
 
-        ${printAttachments.map((att, i) => `
-        <div class="container" style="page-break-before: always;">
-            <div style="color: ${labelColor}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Attachment</div>
-            <div style="font-size: 13px; font-weight: 500; margin-bottom: 16px;">
-                ${att.name}
-                <span style="color: ${labelColor}; font-weight: 400; margin-left: 8px;">— ${att.expenseDescription}</span>
+        <div>
+            <div class="items-table">
+                <div class="items-header">
+                    <div>Date</div>
+                    <div>Description</div>
+                    <div>Category</div>
+                    <div>Amount</div>
+                </div>
+                ${expenses.filter(e => e.description || e.amount).map(exp => `
+                    <div class="item-row">
+                        <div class="item-date">${fmtDate(exp.date)}</div>
+                        <div class="item-desc">${exp.description || ''}</div>
+                        <div class="item-cat">${exp.category || 'Other'}</div>
+                        <div class="item-amt">${formatCurr(exp.amount)}</div>
+                    </div>
+                `).join('')}
             </div>
-            <div style="text-align: center;">
-                <img src="${att.data}" alt="${att.name}" style="max-width: 100%; max-height: 240mm; object-fit: contain; border-radius: 4px;" />
+
+            <div class="totals-final"><span>Total</span><span>${formatCurr(total)}</span></div>
+
+            ${notes ? `
+            <div class="notes">
+                <div class="notes-label">Note</div>
+                <div style="white-space: pre-line; color: ${dark}">${notes}</div>
             </div>
-            <div class="footer" style="position: absolute; bottom: 0; left: 0; right: 0;">
+            ` : ''}
+        </div>
+
+        <div class="bottom-section">
+            ${hasPayment ? `
+            <div class="payment">
+                <div class="payment-title">Payment Details</div>
+                <div class="payment-rows">
+                    ${paymentMethod === 'bank' ? `
+                        ${beneficiary ? `<div><span class="label">Beneficiary:</span> ${beneficiary}</div>` : ''}
+                        ${iban ? `<div><span class="label">IBAN:</span> ${iban}</div>` : ''}
+                        ${bic ? `<div><span class="label">BIC:</span> ${bic}</div>` : ''}
+                        ${intermediaryBic ? `<div><span class="label">Intermediary BIC:</span> ${intermediaryBic}</div>` : ''}
+                    ` : ''}
+                    ${paymentMethod === 'crypto' && ethAddress ? `
+                        <div><span class="label">Network:</span> Ethereum (ERC-20)</div>
+                        <div><span class="label">Address:</span> <span style="font-size: 11px;">${ethAddress}</span></div>
+                    ` : ''}
+                </div>
+            </div>
+            ` : ''}
+
+            <div class="footer">
                 <span>${yourName || 'Your Company'}</span>
-                <span>${reportNumber} · ${i + 2}/${printTotalPages}</span>
+                <span>${reportNumber} · 1/${printTotalPages}</span>
             </div>
         </div>
-        `).join('')}
+    </div>
 
-        <script>window.onload = () => window.print();</script>
-    </body>
-    </html>
-  `
+    ${printAttachments.map((att, i) => `
+    <div class="container" style="page-break-before: always;">
+        <div style="color: ${gray}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Attachment</div>
+        <div style="font-size: 13px; font-weight: 500; color: ${dark}; margin-bottom: 16px;">
+            ${att.name}
+            <span style="color: ${gray}; font-weight: 400; margin-left: 8px;">— ${att.expenseDescription}</span>
+        </div>
+        <div style="text-align: center;">
+            <img src="${att.data}" alt="${att.name}" style="max-width: 100%; max-height: 240mm; object-fit: contain; border-radius: 4px;" />
+        </div>
+        <div class="footer" style="position: absolute; bottom: 0; left: 0; right: 0;">
+            <span>${yourName || 'Your Company'}</span>
+            <span>${reportNumber} · ${i + 2}/${printTotalPages}</span>
+        </div>
+    </div>
+    `).join('')}
+
+    <script>window.onload = () => window.print();</script>
+</body>
+</html>`
 }

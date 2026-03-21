@@ -67,6 +67,7 @@ export const InvoiceForm = () => {
   const defaultCurrency = getDefaultCurrency()
   const defaultVat = getDefaultVatRate()
   const defaultProfile = profiles.length > 0 ? profiles[0] : null
+  const dp = defaultProfile
 
   const [data, setData] = useState({
     invoiceNumber: 'INV-001',
@@ -75,20 +76,22 @@ export const InvoiceForm = () => {
     currency: defaultCurrency,
     status: 'draft',
     logo: '',
-    yourName: '',
-    yourAddress: '',
-    yourEmail: '',
-    yourTaxId: '',
+    yourName: dp?.your_name || dp?.yourName || '',
+    yourAddress: dp?.your_address || dp?.yourAddress || '',
+    yourEmail: dp?.your_email || dp?.yourEmail || '',
+    yourTaxId: dp?.your_tax_id || dp?.yourTaxId || '',
     clientName: '',
     clientAddress: '',
     clientEmail: '',
     clientTaxId: '',
     lineItems: [{ ...defaultLineItem, vat: defaultVat }],
     expenses: [],
-    beneficiary: '',
-    iban: '',
-    bic: '',
-    intermediaryBic: '',
+    beneficiary: dp?.beneficiary || '',
+    iban: dp?.iban || '',
+    bic: dp?.bic || '',
+    intermediaryBic: dp?.intermediary_bic || dp?.intermediaryBic || '',
+    paymentMethod: 'bank',
+    ethAddress: dp?.eth_address || dp?.ethAddress || '',
     notes: '',
     signature: '',
     template: DEFAULT_TEMPLATE,
@@ -104,18 +107,22 @@ export const InvoiceForm = () => {
 
   // Auto-load default profile for new invoices
   useEffect(() => {
-    if (isNew && defaultProfile && !data.yourName) {
-      setData(prev => ({
-        ...prev,
-        yourName: defaultProfile.your_name || defaultProfile.yourName || '',
-        yourAddress: defaultProfile.your_address || defaultProfile.yourAddress || '',
-        yourEmail: defaultProfile.your_email || defaultProfile.yourEmail || '',
-        yourTaxId: defaultProfile.your_tax_id || defaultProfile.yourTaxId || '',
-        beneficiary: defaultProfile.beneficiary || '',
-        iban: defaultProfile.iban || '',
-        bic: defaultProfile.bic || '',
-        intermediaryBic: defaultProfile.intermediary_bic || defaultProfile.intermediaryBic || '',
-      }))
+    if (isNew && defaultProfile) {
+      setData(prev => {
+        if (prev.yourName && prev.yourName !== '') return prev
+        return {
+          ...prev,
+          yourName: defaultProfile.your_name || defaultProfile.yourName || '',
+          yourAddress: defaultProfile.your_address || defaultProfile.yourAddress || '',
+          yourEmail: defaultProfile.your_email || defaultProfile.yourEmail || '',
+          yourTaxId: defaultProfile.your_tax_id || defaultProfile.yourTaxId || '',
+          beneficiary: defaultProfile.beneficiary || '',
+          iban: defaultProfile.iban || '',
+          bic: defaultProfile.bic || '',
+          intermediaryBic: defaultProfile.intermediary_bic || defaultProfile.intermediaryBic || '',
+          ethAddress: defaultProfile.eth_address || defaultProfile.ethAddress || '',
+        }
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultProfile, isNew])
@@ -159,6 +166,8 @@ export const InvoiceForm = () => {
           iban: invoice.iban || '',
           bic: invoice.bic || '',
           intermediaryBic: invoice.intermediary_bic || invoice.intermediaryBic || '',
+          paymentMethod: invoice.payment_method || invoice.paymentMethod || 'bank',
+          ethAddress: invoice.eth_address || invoice.ethAddress || '',
           notes: invoice.notes || '',
           signature: invoice.signature || '',
           template: invoice.template || DEFAULT_TEMPLATE,
@@ -277,7 +286,7 @@ export const InvoiceForm = () => {
         your_name: data.yourName, your_address: data.yourAddress, your_email: data.yourEmail, your_tax_id: data.yourTaxId,
         client_name: data.clientName, client_address: data.clientAddress, client_email: data.clientEmail, client_tax_id: data.clientTaxId,
         line_items: data.lineItems, expenses: data.expenses,
-        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic,
+        beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic, payment_method: data.paymentMethod, eth_address: data.ethAddress,
         notes: data.notes, signature: data.signature, template: data.template, accent_color: data.accentColor,
       }
       if (isNew) {
@@ -445,7 +454,7 @@ export const InvoiceForm = () => {
               {!defaultProfile && data.yourName && (
                 <button
                   onClick={() => {
-                    saveProfile({ your_name: data.yourName, your_address: data.yourAddress, your_email: data.yourEmail, your_tax_id: data.yourTaxId, beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic })
+                    saveProfile({ your_name: data.yourName, your_address: data.yourAddress, your_email: data.yourEmail, your_tax_id: data.yourTaxId, beneficiary: data.beneficiary, iban: data.iban, bic: data.bic, intermediary_bic: data.intermediaryBic, eth_address: data.ethAddress })
                     toast.success('Profile saved — will auto-fill next time')
                   }}
                   className="mt-2 text-[11px] text-brand-600 dark:text-brand-400 hover:underline"
@@ -555,14 +564,58 @@ export const InvoiceForm = () => {
           </div>
 
           {/* Payment Details */}
-          <div className="mb-4">
-            <span className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Payment</span>
-            <div className="grid grid-cols-2 gap-3">
-              <input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Beneficiary" className={inputClass} />
-              <input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="IBAN" className={inputClass} />
-              <input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="BIC / SWIFT" className={inputClass} />
-              <input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Intermediary BIC" className={inputClass} />
+          <div className="mb-4 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-200/60 dark:border-white/[0.06] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-[1.5px]">Payment Details</span>
+              <div className="flex bg-gray-100 dark:bg-white/[0.06] rounded-lg p-0.5">
+                <button
+                  onClick={() => handleChange('paymentMethod', 'bank')}
+                  className={`px-3 py-1 text-[11px] font-medium rounded-md transition ${data.paymentMethod === 'bank' ? 'bg-white dark:bg-white/[0.1] text-brand-600 dark:text-brand-400 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                >
+                  Bank
+                </button>
+                <button
+                  onClick={() => handleChange('paymentMethod', 'crypto')}
+                  className={`px-3 py-1 text-[11px] font-medium rounded-md transition ${data.paymentMethod === 'crypto' ? 'bg-white dark:bg-white/[0.1] text-brand-600 dark:text-brand-400 shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                >
+                  Crypto
+                </button>
+              </div>
             </div>
+
+            {data.paymentMethod === 'bank' ? (
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Beneficiary</label>
+                  <input type="text" value={data.beneficiary} onChange={e => handleChange('beneficiary', e.target.value)} placeholder="Account holder name" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">IBAN</label>
+                  <input type="text" value={data.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="e.g. FR76 1234 5678 9012 3456 7890 123" className={inputClass} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">BIC / SWIFT</label>
+                    <input type="text" value={data.bic} onChange={e => handleChange('bic', e.target.value)} placeholder="e.g. BNPAFRPP" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Intermediary BIC</label>
+                    <input type="text" value={data.intermediaryBic} onChange={e => handleChange('intermediaryBic', e.target.value)} placeholder="Optional" className={inputClass} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">ETH Address (ERC-20)</label>
+                  <input type="text" value={data.ethAddress} onChange={e => handleChange('ethAddress', e.target.value)} placeholder="0x..." className={`${inputClass} font-mono text-[12px]`} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-500 dark:text-brand-400 mb-1">Network</label>
+                  <input type="text" value="Ethereum Mainnet" disabled className={`${inputClass} opacity-60`} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Totals */}
