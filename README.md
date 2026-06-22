@@ -21,6 +21,8 @@ Built with React 19, Vite 7, and Tailwind CSS v4.
 - **Saved Line Items** -- Store common services in Settings, load into invoices with one click
 - **Recurring Expenses** -- Save expense templates for repeated monthly entries
 - **Multiple Profiles** -- Switch between sender identities (freelancer, company, etc.)
+- **Payment Methods** -- Get paid by bank transfer (Beneficiary, IBAN, BIC, Intermediary BIC) **or in crypto** (ETH address on ERC-20 / configurable network). Toggle per invoice in the Payment Details card.
+- **Data Backup** -- Export/import all your data as a single JSON file from Settings &rarr; Data (full localStorage snapshot: profiles, clients, invoices, expenses, templates, settings)
 - **Branding** -- Custom accent colors per document, global brand color settings
 - **Dark Mode** -- Full dark/light theme support
 - **Signature** -- Draw or upload a signature, embedded in documents
@@ -90,12 +92,13 @@ Access via the **Settings** link in the nav bar:
 
 | Tab | What it does |
 |-----|-------------|
-| **My Profile** | Your name, address, email, tax ID, and payment details (IBAN, BIC) |
+| **My Profile** | Your name, address, email, tax ID, and payment details -- bank (IBAN, BIC, Intermediary BIC) or crypto (ETH ERC-20 address, network) |
 | **Invoicing** | Invoice number format, starting number, default currency/VAT/payment terms |
 | **Items** | Saved line item templates for quick loading |
 | **Clients** | Client directory with default VAT rates |
 | **Recurring** | Saved expense templates |
 | **Branding** | Custom accent colors and font overrides for PDF output |
+| **Data** | Export all localStorage data to a JSON backup file, or restore from one |
 
 ## Build for Production
 
@@ -140,7 +143,7 @@ All data is stored in your browser's localStorage. Nothing is sent to any server
 | `invoice_builder_line_items` | Saved line item templates |
 | `invoice_builder_saved_expenses` | Recurring expense templates |
 
-To back up your data, export it from your browser's DevTools (`Application` > `Local Storage`).
+To back up your data, use **Settings &rarr; Data &rarr; Export** to download a JSON file containing every key above. **Import** restores from that file. (You can also poke around `Application` > `Local Storage` in DevTools if you prefer.)
 
 ## Tech Stack
 

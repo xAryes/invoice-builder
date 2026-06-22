@@ -66,7 +66,7 @@ Open that URL in your browser. That's it!
 
 1. Open the app
 2. Go to **Settings** (top right)
-3. Fill in the **My Profile** tab: your name, address, email, payment details (IBAN, BIC, etc.)
+3. Fill in the **My Profile** tab: your name, address, email, and payment details -- either **bank transfer** (IBAN, BIC, Intermediary BIC) or **crypto** (ETH address on ERC-20, network). You can toggle between the two on each invoice's Payment Details card.
 4. Save it
 5. Go back and create your first invoice or expense report
 
